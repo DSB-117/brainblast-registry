@@ -17,6 +17,35 @@ incentive flywheel, deployed at `registry.brainblast.tech`.
 - **`POST /api/packs`** — refreshes the mirror from the GitHub index.
   Protected by `SYNC_TOKEN`.
 
+### Submission staking (memo + indexer v1)
+
+A simple, non-custodial-program staking flow for pack/rule submissions:
+
+1. **`POST /api/stakes`** — author registers a submission
+   (`{ pack_id, rule_id, author_wallet, stake_usd }`) and gets back a unique
+   `memo_code` plus the bounty pool wallet address
+   (`5roYMY7P1rWbfkvqGVFRjV39vE6FD66bwNZA9oEhcu2i`).
+2. The author transfers `stake_usd` worth of **$BRAIN** (10% discount),
+   **SOL**, or **USDC** to that wallet with the `memo_code` attached.
+3. **`POST /api/stakes/sync`** (the indexer, run on a schedule — e.g. Vercel
+   Cron every few minutes) scans recent transactions to the bounty wallet,
+   matches memos to `pending_payment` rows, and flips them to `staked`.
+4. **`PATCH /api/stakes/:id`** (admin, `SYNC_TOKEN`) transitions a `staked`
+   submission to `rejected` or `graduated`.
+5. On rejection, the author calls **`POST /api/stakes/:id/reclaim`** to
+   request a refund. **`GET /api/refunds`** (admin) lists the pending queue;
+   **`PATCH /api/refunds`** marks one processed once the manual weekly
+   (Friday) refund transfer is sent.
+
+This is intentionally simple for v1 — a future iteration should move staking
+to a trustless escrow program and automate refunds/payouts.
+
+### Bounty pool wallet
+
+`5roYMY7P1rWbfkvqGVFRjV39vE6FD66bwNZA9oEhcu2i` receives the 2% registry tax on
+stakes, weekly $BRAIN buyback transfers, and the 50% author-split from
+premium payments.
+
 ## Setup
 
 ### 1. Supabase project

@@ -50,3 +50,40 @@ create table if not exists pack_registry (
   latest_version text,
   synced_at timestamptz not null default now()
 );
+
+-- Submission staking (Phase 6, memo+indexer v1 — see README "Staking").
+-- An author calls POST /api/stakes to register a pack submission and gets
+-- back a one-time `memo_code`. They then transfer the stake (in $BRAIN, SOL,
+-- or USDC) to the bounty pool wallet
+-- (5roYMY7P1rWbfkvqGVFRjV39vE6FD66bwNZA9oEhcu2i) with that memo code attached
+-- to the transaction. POST /api/stakes/sync (the indexer, run on a schedule)
+-- scans recent transactions to that wallet, matches memos to pending rows,
+-- and flips them to 'staked'.
+create table if not exists stake_submissions (
+  id bigint generated always as identity primary key,
+  memo_code text not null unique,
+  pack_id text not null,
+  rule_id text not null,
+  author_wallet text not null,
+  stake_usd numeric not null,
+  status text not null default 'pending_payment'
+    check (status in ('pending_payment', 'staked', 'rejected', 'graduated', 'refund_requested', 'refunded')),
+  tx_signature text,
+  token_mint text,
+  token_amount numeric,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists stake_submissions_status_idx
+  on stake_submissions (status);
+
+-- Rejected stakes the author has asked to reclaim. Processed manually in a
+-- weekly batch (Fridays) per the v0.5.0 launch decision; automate later.
+create table if not exists refund_requests (
+  id bigint generated always as identity primary key,
+  stake_id bigint not null references stake_submissions (id),
+  requested_at timestamptz not null default now(),
+  processed_at timestamptz,
+  refund_tx_signature text
+);
