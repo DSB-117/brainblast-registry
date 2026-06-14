@@ -64,10 +64,11 @@ export async function POST(req: NextRequest) {
   });
 }
 
-// GET /api/stakes?status=pending_payment — list stake submissions, optionally
-// filtered by status.
+// GET /api/stakes?status=pending_payment&memo_code=BB-xxxxxxxx — list stake
+// submissions, optionally filtered by status and/or memo_code.
 export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get("status");
+  const memoCode = req.nextUrl.searchParams.get("memo_code");
   const db = supabaseAdmin();
 
   let query = db
@@ -76,6 +77,7 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (status) query = query.eq("status", status);
+  if (memoCode) query = query.eq("memo_code", memoCode);
 
   const { data, error } = await query;
   if (error) {

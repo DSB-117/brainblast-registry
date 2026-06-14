@@ -27,6 +27,15 @@ A simple, non-custodial-program staking flow for pack/rule submissions:
    (`5roYMY7P1rWbfkvqGVFRjV39vE6FD66bwNZA9oEhcu2i`).
 2. The author transfers `stake_usd` worth of **$BRAIN** (10% discount),
    **SOL**, or **USDC** to that wallet with the `memo_code` attached.
+
+   **Attaching a memo:** most wallet UIs (including Phantom's basic send
+   flow) don't expose a memo field. Use the **`/stake/<memo_code>`** page on
+   this site — it connects to Phantom (or any Wallet Standard wallet), builds
+   a single transaction containing your transfer plus the required
+   [SPL Memo](https://spl.solana.com/memo) instruction, and asks your wallet
+   to sign it. Your private key never leaves the wallet extension. (If you'd
+   rather use the CLI: `solana transfer ... --with-memo "<memo_code>"` or
+   `spl-token transfer ... --with-memo "<memo_code>"`.)
 3. **`POST /api/stakes/sync`** (the indexer, run on a schedule — e.g. Vercel
    Cron every few minutes) scans recent transactions to the bounty wallet,
    matches memos to `pending_payment` rows, and flips them to `staked`.
