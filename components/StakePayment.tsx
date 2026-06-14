@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
   PublicKey,
   Transaction,
@@ -16,7 +15,7 @@ import {
   getAccount,
   getMint,
 } from "@solana/spl-token";
-import { TOKENS, type TokenSymbol } from "../../../lib/tokens";
+import { TOKENS, type TokenSymbol } from "../lib/tokens";
 
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
@@ -31,11 +30,12 @@ export interface StakeInfo {
 
 export default function StakePayment({ stake }: { stake: StakeInfo }) {
   const { connection } = useConnection();
-  const { publicKey, sendTransaction, connected } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
 
   const [token, setToken] = useState<TokenSymbol>("BRAIN");
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<string>("");
+  const [statusKind, setStatusKind] = useState<"" | "error" | "success">("");
   const [signature, setSignature] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
@@ -46,11 +46,13 @@ export default function StakePayment({ stake }: { stake: StakeInfo }) {
     const amountNum = Number(amount);
     if (!amountNum || amountNum <= 0) {
       setStatus("Enter a positive amount.");
+      setStatusKind("error");
       return;
     }
 
     setBusy(true);
     setStatus("Building transaction…");
+    setStatusKind("");
     setSignature("");
 
     try {
@@ -103,80 +105,81 @@ export default function StakePayment({ stake }: { stake: StakeInfo }) {
 
       await connection.confirmTransaction(sig, "confirmed");
       setStatus("Confirmed! The indexer will pick this up shortly and mark this stake as 'staked'.");
+      setStatusKind("success");
     } catch (err: any) {
       setStatus(`Error: ${err?.message ?? String(err)}`);
+      setStatusKind("error");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div style={{ fontFamily: "monospace", maxWidth: 640, padding: "2rem" }}>
-      <h1>Stake payment — {stake.memo_code}</h1>
+    <div>
       <p>
-        Pack: <code>{stake.pack_id}</code> / Rule: <code>{stake.rule_id}</code>
+        Pack: <span className="code-pill">{stake.pack_id}</span> · Rule:{" "}
+        <span className="code-pill">{stake.rule_id}</span>
       </p>
       <p>
-        Stake: <strong>${stake.stake_usd}</strong> (status: <code>{stake.status}</code>)
+        Stake: <strong style={{ color: "var(--ink)" }}>${stake.stake_usd}</strong> · status:{" "}
+        <span className="code-pill">{stake.status}</span>
       </p>
-      <p>
-        Pay to: <code>{stake.pay_to}</code>
-      </p>
+      <p className="muted">Pay to: {stake.pay_to}</p>
 
-      {stake.status !== "pending_payment" && (
-        <p style={{ color: "darkorange" }}>
-          This stake is already <code>{stake.status}</code> — no payment needed.
+      {stake.status !== "pending_payment" ? (
+        <p style={{ color: "var(--amber)" }}>
+          This stake is already <strong>{stake.status}</strong> — no payment needed.
         </p>
+      ) : (
+        <>
+          {!publicKey && <p className="muted">Connect a wallet above to pay.</p>}
+
+          {publicKey && (
+            <div className="form-grid" style={{ marginTop: 16 }}>
+              <label>
+                Token
+                <select value={token} onChange={(e) => setToken(e.target.value as TokenSymbol)}>
+                  {Object.keys(TOKENS).map((sym) => (
+                    <option key={sym} value={sym}>
+                      {TOKENS[sym as TokenSymbol].symbol}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Amount
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={`amount in ${TOKENS[token].symbol}`}
+                />
+              </label>
+              <button className="button button-primary" onClick={pay} disabled={busy}>
+                {busy ? "Sending…" : `Send with memo "${stake.memo_code}"`}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      <div style={{ margin: "1rem 0" }}>
-        <WalletMultiButton />
-      </div>
-
-      {connected && stake.status === "pending_payment" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 320 }}>
-          <label>
-            Token:{" "}
-            <select value={token} onChange={(e) => setToken(e.target.value as TokenSymbol)}>
-              {Object.keys(TOKENS).map((sym) => (
-                <option key={sym} value={sym}>
-                  {TOKENS[sym as TokenSymbol].symbol}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Amount:{" "}
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder={`amount in ${TOKENS[token].symbol}`}
-            />
-          </label>
-          <button onClick={pay} disabled={busy}>
-            {busy ? "Sending…" : `Send with memo "${stake.memo_code}"`}
-          </button>
-        </div>
-      )}
-
-      {status && <p style={{ marginTop: "1rem" }}>{status}</p>}
+      {status && <p className={`status-line ${statusKind}`}>{status}</p>}
       {signature && (
-        <p>
+        <p className="status-line">
           Tx:{" "}
-          <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
+          <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
             {signature}
           </a>
         </p>
       )}
 
-      <hr style={{ margin: "2rem 0" }} />
-      <p style={{ fontSize: "0.85em", color: "#666" }}>
-        This page builds a single transaction containing your transfer plus an SPL Memo
-        instruction carrying the code <code>{stake.memo_code}</code>. Your private key never
-        leaves your wallet extension — this page only requests a signature.
+      <hr className="divider" />
+      <p className="muted">
+        This builds a single transaction containing your transfer plus an SPL Memo instruction
+        carrying the code <span className="code-pill">{stake.memo_code}</span>. Your private key
+        never leaves your wallet extension — this page only requests a signature.
       </p>
     </div>
   );
