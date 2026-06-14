@@ -167,6 +167,10 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
                 value={stakeUsd}
                 onChange={(e) => setStakeUsd(e.target.value)}
               />
+              <span className="field-hint">
+                $5 suggested — covers indexer/gas costs and signals you'll maintain this rule.
+                Higher stakes can mean more visibility once your pack graduates.
+              </span>
             </label>
           </div>
           {usdOwed !== null && (
