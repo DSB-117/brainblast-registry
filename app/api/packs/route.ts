@@ -5,7 +5,7 @@ import { isAuthorized } from "../../../lib/auth";
 // GET /api/packs — serves the mirrored pack registry (see pack_registry
 // table). The source of truth is the GitHub index at
 // PACK_REGISTRY_INDEX_URL (DSB-117/brainblast-pack-registry/packs.json,
-// Phase 7); this table is a cache so registry.brainblast.tech doesn't hit
+// Phase 7); this table is a cache so app.brainblast.tech doesn't hit
 // GitHub on every request.
 export async function GET() {
   const db = supabaseAdmin();
