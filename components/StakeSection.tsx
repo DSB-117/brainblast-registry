@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import StakePayment, { type StakeInfo } from "./StakePayment";
+import { TOKENS, type TokenSymbol } from "../lib/tokens";
 
 interface PackOption {
   pack_id: string;
@@ -16,6 +17,7 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
   const [packId, setPackId] = useState(packs[0]?.pack_id ?? "");
   const [ruleId, setRuleId] = useState("");
   const [stakeUsd, setStakeUsd] = useState("5");
+  const [token, setToken] = useState<TokenSymbol>("BRAIN");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [stake, setStake] = useState<StakeInfo | null>(null);
@@ -66,14 +68,15 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
 
   return (
     <div className="card">
-      <div style={{ marginBottom: 16 }}>
+      <div className="card-header">
+        <h3>{stake ? "Step 2 — pay your stake" : "Step 1 — connect & register"}</h3>
         <WalletMultiButton />
       </div>
 
       {!publicKey && (
         <p className="muted">
           Connect a wallet to register a submission and pay your stake in SOL, USDC, or $BRAIN
-          (10% discount).
+          (10% discount on the equivalent USD stake).
         </p>
       )}
 
@@ -103,16 +106,34 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
               placeholder="e.g. spl-token-amount-lamports-per-sol"
             />
           </label>
-          <label>
-            Stake amount (USD)
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={stakeUsd}
-              onChange={(e) => setStakeUsd(e.target.value)}
-            />
-          </label>
+          <div className="row-2">
+            <label>
+              Stake amount (USD)
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={stakeUsd}
+                onChange={(e) => setStakeUsd(e.target.value)}
+              />
+            </label>
+            <label>
+              Pay with
+              <select value={token} onChange={(e) => setToken(e.target.value as TokenSymbol)}>
+                {Object.keys(TOKENS).map((sym) => (
+                  <option key={sym} value={sym}>
+                    {TOKENS[sym as TokenSymbol].symbol}
+                    {sym === "BRAIN" ? " (10% off)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {token === "BRAIN" && (
+            <p className="token-discount">
+              Paying with $BRAIN: you'll owe ~10% less than the ${stakeUsd || "0"} USD stake.
+            </p>
+          )}
           <button className="button button-primary" onClick={register} disabled={busy}>
             {busy ? "Registering…" : "Register submission"}
           </button>
@@ -122,10 +143,10 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
 
       {stake && (
         <>
-          <h3 style={{ marginBottom: 8 }}>
-            Submission registered — <span className="code-pill">{stake.memo_code}</span>
-          </h3>
-          <StakePayment stake={stake} />
+          <p className="muted" style={{ marginBottom: 16 }}>
+            Submission registered — memo code <span className="code-pill">{stake.memo_code}</span>
+          </p>
+          <StakePayment stake={stake} initialToken={token} />
         </>
       )}
     </div>

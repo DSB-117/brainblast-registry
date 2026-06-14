@@ -159,7 +159,12 @@ h1.hero-title {
 }
 
 .grid-2 {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 340px));
+}
+
+.pack-card {
+  display: flex;
+  flex-direction: column;
 }
 
 .pack-card h3 {
@@ -264,6 +269,78 @@ select:focus {
   display: grid;
   gap: 14px;
   max-width: 420px;
+}
+
+.row-2 {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.card-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-header h3 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.step:last-child {
+  margin-bottom: 0;
+}
+
+.step-number {
+  align-items: center;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  border-radius: 50%;
+  color: #041021;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 0.92rem;
+  font-weight: 950;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-body h3 {
+  font-size: 1.02rem;
+  margin-bottom: 10px;
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  color: var(--cyan);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 800;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.token-discount {
+  color: var(--green);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .status-line {
