@@ -1,12 +1,17 @@
+import "./globals.css";
+import Providers from "./providers";
+
 export const metadata = {
   title: "brainblast registry",
-  description: "Registry & telemetry server for brainblast rule packs",
+  description: "Registry, pack index & $BRAIN staking for the brainblast rule-pack flywheel",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

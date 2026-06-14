@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "../../../lib/supabase";
 import { BOUNTY_POOL_WALLET } from "../../../lib/solana";
-import WalletProviders from "./WalletProviders";
-import StakePayment, { type StakeInfo } from "./StakePayment";
+import StakePayment, { type StakeInfo } from "../../../components/StakePayment";
+import WalletButton from "../../../components/WalletButton";
 
 export default async function StakePage({ params }: { params: { memoCode: string } }) {
   const db = supabaseAdmin();
@@ -13,18 +13,29 @@ export default async function StakePage({ params }: { params: { memoCode: string
 
   if (error || !data) {
     return (
-      <main style={{ fontFamily: "monospace", padding: "2rem" }}>
-        <h1>Stake not found</h1>
-        <p>No stake submission with memo code {params.memoCode}.</p>
-      </main>
+      <div className="page">
+        <h1 className="hero-title">Stake not found</h1>
+        <p>
+          No stake submission with memo code <span className="code-pill">{params.memoCode}</span>.
+          Go to the <a href="/" style={{ color: "var(--cyan)" }}>registry home</a> to register one.
+        </p>
+      </div>
     );
   }
 
   const stake: StakeInfo = { ...data, pay_to: BOUNTY_POOL_WALLET };
 
   return (
-    <WalletProviders>
-      <StakePayment stake={stake} />
-    </WalletProviders>
+    <div className="page">
+      <h1 className="hero-title" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+        Stake payment — {stake.memo_code}
+      </h1>
+      <div className="card" style={{ maxWidth: 640 }}>
+        <div style={{ marginBottom: 16 }}>
+          <WalletButton />
+        </div>
+        <StakePayment stake={stake} />
+      </div>
+    </div>
   );
 }
