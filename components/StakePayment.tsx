@@ -28,11 +28,17 @@ export interface StakeInfo {
   pay_to: string;
 }
 
-export default function StakePayment({ stake }: { stake: StakeInfo }) {
+export default function StakePayment({
+  stake,
+  initialToken = "BRAIN",
+}: {
+  stake: StakeInfo;
+  initialToken?: TokenSymbol;
+}) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
 
-  const [token, setToken] = useState<TokenSymbol>("BRAIN");
+  const [token, setToken] = useState<TokenSymbol>(initialToken);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<string>("");
   const [statusKind, setStatusKind] = useState<"" | "error" | "success">("");
