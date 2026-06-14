@@ -32,7 +32,7 @@ async function getPacks(): Promise<Pack[]> {
     const { data, error } = await db
       .from("pack_registry")
       .select("pack_id, name, repo_url, author, description, latest_version, synced_at")
-      .order("synced_at", { ascending: false });
+      .order("name", { ascending: true });
     if (error) return [];
     return data ?? [];
   } catch {
