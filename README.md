@@ -1,7 +1,7 @@
 # brainblast-registry
 
 Backend service for the [brainblast](https://github.com/DSB-117/brainblast) rule-pack
-incentive flywheel, deployed at `registry.brainblast.tech`.
+incentive flywheel, deployed at `app.brainblast.tech`.
 
 ## What it does
 
@@ -81,10 +81,10 @@ premium payments.
 3. Deploy: `vercel --prod` (or push to `main` if the GitHub integration is
    connected).
 
-### 3. DNS — `registry.brainblast.tech`
+### 3. DNS — `app.brainblast.tech`
 
 1. In the Vercel project, go to **Settings → Domains** and add
-   `registry.brainblast.tech`.
+   `app.brainblast.tech`.
 2. Vercel will show the required DNS record (typically a `CNAME` to
    `cname.vercel-dns.com`, or an `A` record if it's an apex domain).
 3. Add that record at your DNS provider for `brainblast.tech`.
