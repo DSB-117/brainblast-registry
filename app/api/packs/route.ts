@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabase";
+import { isAuthorized } from "../../../lib/auth";
 
 // GET /api/packs — serves the mirrored pack registry (see pack_registry
 // table). The source of truth is the GitHub index at
@@ -33,8 +34,7 @@ interface PackIndexEntry {
 // intended to be called from a scheduled job (e.g. Vercel Cron) or
 // manually after a new pack is published to the index repo.
 export async function POST(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!process.env.SYNC_TOKEN || token !== process.env.SYNC_TOKEN) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

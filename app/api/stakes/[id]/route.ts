@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabase";
+import { isAuthorized } from "../../../../lib/auth";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   staked: ["rejected", "graduated"],
@@ -10,8 +11,7 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 // the pack registry sync endpoint).
 // body: { status: "rejected" | "graduated" }
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!process.env.SYNC_TOKEN || token !== process.env.SYNC_TOKEN) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

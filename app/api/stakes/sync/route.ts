@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabase";
+import { isAuthorized } from "../../../../lib/auth";
 import { fetchIncomingTransfers, BOUNTY_POOL_WALLET } from "../../../../lib/solana";
 
 // POST /api/stakes/sync — the stake indexer. Scans recent transactions to
@@ -8,8 +9,7 @@ import { fetchIncomingTransfers, BOUNTY_POOL_WALLET } from "../../../../lib/sola
 // 'staked'. Protected by SYNC_TOKEN; intended to run on a schedule (e.g.
 // Vercel Cron, every few minutes).
 export async function POST(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!process.env.SYNC_TOKEN || token !== process.env.SYNC_TOKEN) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

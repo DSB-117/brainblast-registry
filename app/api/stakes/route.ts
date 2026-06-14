@@ -7,6 +7,9 @@ function generateMemoCode(): string {
   return `BB-${randomBytes(4).toString("hex")}`;
 }
 
+// Base58, 32-44 chars covers all valid Solana pubkey encodings.
+const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
 // POST /api/stakes — register a pack submission and get a memo code.
 // body: { pack_id, rule_id, author_wallet, stake_usd }
 //
@@ -34,6 +37,9 @@ export async function POST(req: NextRequest) {
       { error: "pack_id, rule_id, author_wallet (string) and stake_usd (positive number) are required" },
       { status: 400 },
     );
+  }
+  if (!SOLANA_ADDRESS_RE.test(author_wallet)) {
+    return NextResponse.json({ error: "author_wallet must be a valid Solana address" }, { status: 400 });
   }
 
   const db = supabaseAdmin();

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabase";
+import { isAuthorized } from "../../../lib/auth";
 
 // GET /api/refunds — admin view of the weekly refund queue: rejected stakes
 // the author has reclaimed but that haven't been refunded yet. Protected by
 // SYNC_TOKEN.
 export async function GET(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!process.env.SYNC_TOKEN || token !== process.env.SYNC_TOKEN) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -28,8 +28,7 @@ export async function GET(req: NextRequest) {
 // PATCH /api/refunds — mark a refund as processed.
 // body: { refund_request_id, refund_tx_signature }
 export async function PATCH(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!process.env.SYNC_TOKEN || token !== process.env.SYNC_TOKEN) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
