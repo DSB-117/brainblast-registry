@@ -325,6 +325,18 @@ select:focus {
   margin-bottom: 10px;
 }
 
+.link-button {
+  background: none;
+  border: 0;
+  color: var(--cyan);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 800;
+  padding: 0;
+  text-decoration: underline;
+}
+
 .token-discount {
   color: var(--green);
   font-size: 0.78rem;

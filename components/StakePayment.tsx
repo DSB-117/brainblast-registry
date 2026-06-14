@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
   PublicKey,
@@ -15,7 +15,8 @@ import {
   getAccount,
   getMint,
 } from "@solana/spl-token";
-import { TOKENS, type TokenSymbol } from "../lib/tokens";
+import { TOKENS, BRAIN_DISCOUNT, type TokenSymbol } from "../lib/tokens";
+import { fetchUsdPrices } from "../lib/price";
 
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
@@ -40,12 +41,57 @@ export default function StakePayment({
 
   const [token, setToken] = useState<TokenSymbol>(initialToken);
   const [amount, setAmount] = useState("");
+  const [amountTouched, setAmountTouched] = useState(false);
+  const [price, setPrice] = useState<number | null>(null);
+  const [priceError, setPriceError] = useState("");
   const [status, setStatus] = useState<string>("");
   const [statusKind, setStatusKind] = useState<"" | "error" | "success">("");
   const [signature, setSignature] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   const payTo = useMemo(() => new PublicKey(stake.pay_to), [stake.pay_to]);
+
+  // Convert the USD stake into a token amount so users don't have to do the
+  // math themselves. SOL/USDC are priced at face value; $BRAIN gets the 10%
+  // discount applied to the USD owed before converting.
+  const suggestedAmount = useMemo(() => {
+    if (!price || price <= 0) return null;
+    const usdOwed = token === "BRAIN" ? stake.stake_usd * (1 - BRAIN_DISCOUNT) : stake.stake_usd;
+    return usdOwed / price;
+  }, [price, token, stake.stake_usd]);
+
+  // Fetch a fresh USD price whenever the selected token changes, and
+  // pre-fill the amount field with the suggested value (unless the user has
+  // already started editing it for this token).
+  useEffect(() => {
+    let cancelled = false;
+    setPrice(null);
+    setPriceError("");
+    setAmountTouched(false);
+
+    fetchUsdPrices([TOKENS[token].priceMint])
+      .then((prices) => {
+        if (cancelled) return;
+        const p = prices[TOKENS[token].priceMint];
+        if (!p) {
+          setPriceError("Price unavailable — enter the amount manually.");
+          return;
+        }
+        setPrice(p);
+      })
+      .catch(() => {
+        if (!cancelled) setPriceError("Price lookup failed — enter the amount manually.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (amountTouched || suggestedAmount === null) return;
+    setAmount(suggestedAmount.toFixed(suggestedAmount < 1 ? 6 : 2));
+  }, [suggestedAmount, amountTouched]);
 
   async function pay() {
     if (!publicKey) return;
@@ -159,10 +205,36 @@ export default function StakePayment({
                   min="0"
                   step="any"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setAmountTouched(true);
+                  }}
                   placeholder={`amount in ${TOKENS[token].symbol}`}
                 />
               </label>
+              {price && suggestedAmount !== null && (
+                <p className="muted" style={{ margin: 0 }}>
+                  ≈ {suggestedAmount.toFixed(suggestedAmount < 1 ? 6 : 2)} {TOKENS[token].symbol} at
+                  ${price < 0.01 ? price.toFixed(8) : price.toFixed(2)}/token
+                  {token === "BRAIN" && ` (10% discount applied to the $${stake.stake_usd} stake)`}.
+                  {amountTouched && (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => {
+                          setAmount(suggestedAmount.toFixed(suggestedAmount < 1 ? 6 : 2));
+                          setAmountTouched(false);
+                        }}
+                      >
+                        Use suggested
+                      </button>
+                    </>
+                  )}
+                </p>
+              )}
+              {priceError && <p className="status-line error" style={{ margin: 0 }}>{priceError}</p>}
               <button className="button button-primary" onClick={pay} disabled={busy}>
                 {busy ? "Sending…" : `Send with memo "${stake.memo_code}"`}
               </button>
