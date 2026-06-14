@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { TOKENS } from "../lib/tokens";
+
+const BRAIN_MINT = TOKENS.BRAIN.mint;
 
 interface Submission {
   memo_code: string;
@@ -9,6 +12,8 @@ interface Submission {
   rule_id: string;
   stake_usd: number;
   status: string;
+  token_mint: string | null;
+  token_amount: number | null;
 }
 
 export default function MySubmissions() {
@@ -38,11 +43,15 @@ export default function MySubmissions() {
 
   if (!publicKey) return null;
 
-  const staked = (submissions ?? []).filter((s) => s.status === "staked" || s.status === "pending_payment");
+  const staked = (submissions ?? []).filter((s) => s.status === "staked");
   const graduated = (submissions ?? []).filter((s) => s.status === "graduated");
+  const pending = (submissions ?? []).filter((s) => s.status === "pending_payment");
 
-  const stakedTotal = staked.reduce((sum, s) => sum + Number(s.stake_usd), 0);
-  const earningsTotal = graduated.reduce((sum, s) => sum + Number(s.stake_usd), 0);
+  const brainAmount = (s: Submission) => (s.token_mint === BRAIN_MINT ? Number(s.token_amount ?? 0) : 0);
+
+  const stakedTotal = staked.reduce((sum, s) => sum + brainAmount(s), 0);
+  const earningsTotal = graduated.reduce((sum, s) => sum + brainAmount(s), 0);
+  const pendingTotal = pending.reduce((sum, s) => sum + Number(s.stake_usd), 0);
 
   return (
     <div className="card glass sidebar-card">
@@ -68,13 +77,23 @@ export default function MySubmissions() {
       <div className="sidebar-stats">
         <div>
           <p className="sidebar-card-title">$BRAIN staked</p>
-          <p className="sidebar-stat-value">${stakedTotal.toFixed(2)}</p>
+          <p className="sidebar-stat-value">
+            {stakedTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </p>
         </div>
         <div>
           <p className="sidebar-card-title">$BRAIN earnings</p>
-          <p className="sidebar-stat-value">${earningsTotal.toFixed(2)}</p>
+          <p className="sidebar-stat-value">
+            {earningsTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </p>
         </div>
       </div>
+      {pending.length > 0 && (
+        <p className="muted" style={{ marginTop: 10 }}>
+          {pending.length} submission{pending.length === 1 ? "" : "s"} awaiting payment (
+          ${pendingTotal.toFixed(2)} USD pending — not yet counted as staked).
+        </p>
+      )}
     </div>
   );
 }

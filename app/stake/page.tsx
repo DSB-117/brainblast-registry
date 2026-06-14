@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../lib/supabase";
 import { BOUNTY_POOL_WALLET } from "../../lib/solana";
+import { TOKENS } from "../../lib/tokens";
 import StakeSection from "../../components/StakeSection";
 import WalletButton from "../../components/WalletButton";
 import WalletBalances from "../../components/WalletBalances";
@@ -23,6 +24,8 @@ interface Stats {
   bugsPrevented: number;
 }
 
+const BRAIN_MINT = TOKENS.BRAIN.mint;
+
 async function getPacks(): Promise<Pack[]> {
   try {
     const db = supabaseAdmin();
@@ -42,10 +45,16 @@ async function getStats(): Promise<Stats> {
     const db = supabaseAdmin();
     const [packsRes, stakedRes, bugsRes] = await Promise.all([
       db.from("pack_registry").select("*", { count: "exact", head: true }),
-      db.from("stake_submissions").select("stake_usd").in("status", ["staked", "graduated"]),
+      db
+        .from("stake_submissions")
+        .select("token_amount")
+        .in("status", ["staked", "graduated"])
+        .eq("token_mint", BRAIN_MINT),
       db.from("telemetry_events").select("*", { count: "exact", head: true }),
     ]);
-    const brainStaked = (stakedRes.data ?? []).reduce((sum, r: any) => sum + Number(r.stake_usd), 0);
+    // Sum of actual $BRAIN tokens staked (only stakes paid in $BRAIN — other
+    // tokens contribute to the bounty pool but aren't counted here).
+    const brainStaked = (stakedRes.data ?? []).reduce((sum, r: any) => sum + Number(r.token_amount ?? 0), 0);
     return {
       packsSubmitted: packsRes.count ?? 0,
       brainStaked,
@@ -125,7 +134,9 @@ export default async function Home() {
           </div>
           <div className="card glass stat-card">
             <p className="stat-label">$BRAIN staked</p>
-            <p className="stat-value">${stats.brainStaked.toFixed(2)}</p>
+            <p className="stat-value">
+              {stats.brainStaked.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </p>
           </div>
           <div className="card glass stat-card">
             <p className="stat-label">Bugs prevented</p>
