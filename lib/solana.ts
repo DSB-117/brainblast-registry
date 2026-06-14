@@ -9,7 +9,7 @@ const MEMO_PROGRAM_IDS = new Set([
 export const BOUNTY_POOL_WALLET = "5roYMY7P1rWbfkvqGVFRjV39vE6FD66bwNZA9oEhcu2i";
 
 export function defaultRpcUrl(): string {
-  return process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
+  return process.env.SOLANA_RPC_URL ?? "https://solana-rpc.publicnode.com";
 }
 
 async function rpcCall<T>(rpcUrl: string, method: string, params: unknown[]): Promise<T> {
