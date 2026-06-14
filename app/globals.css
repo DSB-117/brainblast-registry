@@ -159,7 +159,12 @@ h1.hero-title {
 }
 
 .grid-2 {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 340px));
+}
+
+.pack-card {
+  display: flex;
+  flex-direction: column;
 }
 
 .pack-card h3 {
