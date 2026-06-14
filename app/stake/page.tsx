@@ -1,6 +1,9 @@
 import { supabaseAdmin } from "../../lib/supabase";
 import { BOUNTY_POOL_WALLET } from "../../lib/solana";
 import StakeSection from "../../components/StakeSection";
+import WalletButton from "../../components/WalletButton";
+import WalletBalances from "../../components/WalletBalances";
+import MySubmissions from "../../components/MySubmissions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +14,13 @@ interface Pack {
   author: string | null;
   description: string | null;
   latest_version: string | null;
+  synced_at: string;
+}
+
+interface Stats {
+  packsSubmitted: number;
+  brainStaked: number;
+  bugsPrevented: number;
 }
 
 async function getPacks(): Promise<Pack[]> {
@@ -18,8 +28,8 @@ async function getPacks(): Promise<Pack[]> {
     const db = supabaseAdmin();
     const { data, error } = await db
       .from("pack_registry")
-      .select("pack_id, name, repo_url, author, description, latest_version")
-      .order("name", { ascending: true });
+      .select("pack_id, name, repo_url, author, description, latest_version, synced_at")
+      .order("synced_at", { ascending: false });
     if (error) return [];
     return data ?? [];
   } catch {
@@ -27,108 +37,202 @@ async function getPacks(): Promise<Pack[]> {
   }
 }
 
+async function getStats(): Promise<Stats> {
+  try {
+    const db = supabaseAdmin();
+    const [packsRes, stakedRes, bugsRes] = await Promise.all([
+      db.from("pack_registry").select("*", { count: "exact", head: true }),
+      db.from("stake_submissions").select("stake_usd").in("status", ["staked", "graduated"]),
+      db.from("telemetry_events").select("*", { count: "exact", head: true }),
+    ]);
+    const brainStaked = (stakedRes.data ?? []).reduce((sum, r: any) => sum + Number(r.stake_usd), 0);
+    return {
+      packsSubmitted: packsRes.count ?? 0,
+      brainStaked,
+      bugsPrevented: bugsRes.count ?? 0,
+    };
+  } catch {
+    return { packsSubmitted: 0, brainStaked: 0, bugsPrevented: 0 };
+  }
+}
+
+function PackCard({ pack }: { pack: Pack }) {
+  return (
+    <div className="card glass pack-card">
+      <h3>
+        <span>{pack.name}</span>
+        {pack.latest_version && <span className="code-pill">v{pack.latest_version}</span>}
+      </h3>
+      <p className="pack-id">{pack.pack_id}</p>
+      {pack.description && <p style={{ marginTop: 8 }}>{pack.description}</p>}
+      <div className="pack-meta">
+        {pack.author && <span>by {pack.author}</span>}
+        <a href={pack.repo_url} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
+          repo →
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default async function Home() {
-  const packs = await getPacks();
+  const [packs, stats] = await Promise.all([getPacks(), getStats()]);
+  const newPacks = packs.slice(0, 4);
+  const popularPacks = [...packs].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 4);
 
   return (
-    <div className="page">
-      <header className="header">
-        <div className="brand">
-          <span className="brand-name">brainblast</span>
-          <span className="brand-sub">registry</span>
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="card glass sidebar-card">
+          <div className="brand" style={{ marginBottom: 14 }}>
+            <span className="brand-name">brainblast</span>
+            <span className="brand-sub">registry</span>
+          </div>
+          <WalletButton />
         </div>
-        <a className="button button-secondary" href="https://brainblast.tech" target="_blank" rel="noreferrer">
+
+        <WalletBalances />
+        <MySubmissions />
+
+        <a
+          className="button button-secondary sidebar-link"
+          href="https://brainblast.tech"
+          target="_blank"
+          rel="noreferrer"
+        >
           brainblast.tech
         </a>
-      </header>
+      </aside>
 
-      <section>
-        <p className="eyebrow">Rule pack registry &amp; staking</p>
-        <h1 className="hero-title">The brainblast pack registry.</h1>
-        <p className="hero-lede">
-          Browse third-party rule packs for the{" "}
-          <a href="https://github.com/DSB-117/brainblast" style={{ color: "var(--cyan)" }}>
-            brainblast
-          </a>{" "}
-          auditor, track graduation telemetry toward the $BRAIN bounty pool, and stake $BRAIN,
-          SOL, or USDC behind your own pack submissions.
-        </p>
-      </section>
+      <main className="main-content">
+        <section>
+          <p className="eyebrow">Rule pack registry &amp; staking</p>
+          <h1 className="hero-title">The brainblast pack registry.</h1>
+          <p className="hero-lede">
+            Browse third-party rule packs for the{" "}
+            <a href="https://github.com/DSB-117/brainblast" style={{ color: "var(--cyan)" }}>
+              brainblast
+            </a>{" "}
+            auditor, track graduation telemetry toward the $BRAIN bounty pool, and stake $BRAIN,
+            SOL, or USDC behind your own pack submissions.
+          </p>
+        </section>
 
-      <section className="section">
-        <h2>Pack registry</h2>
-        <p className="section-intro">
-          Third-party rule packs available via <code className="code-pill">--packs</code>. Each
-          pack's checks become eligible for opt-in graduation telemetry once registered here.
-        </p>
-
-        {packs.length === 0 ? (
-          <p className="muted">No packs registered yet.</p>
-        ) : (
-          <div className="grid grid-2">
-            {packs.map((p) => (
-              <div className="card pack-card" key={p.pack_id}>
-                <h3>
-                  <span>{p.name}</span>
-                  {p.latest_version && <span className="code-pill">v{p.latest_version}</span>}
-                </h3>
-                <p className="pack-id">{p.pack_id}</p>
-                {p.description && <p style={{ marginTop: 8 }}>{p.description}</p>}
-                <div className="pack-meta">
-                  {p.author && <span>by {p.author}</span>}
-                  <a href={p.repo_url} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-                    repo →
-                  </a>
-                </div>
-              </div>
-            ))}
+        <div className="stat-grid">
+          <div className="card glass stat-card">
+            <p className="stat-label">Packs submitted</p>
+            <p className="stat-value">{stats.packsSubmitted}</p>
           </div>
-        )}
-      </section>
+          <div className="card glass stat-card">
+            <p className="stat-label">$BRAIN staked</p>
+            <p className="stat-value">${stats.brainStaked.toFixed(2)}</p>
+          </div>
+          <div className="card glass stat-card">
+            <p className="stat-label">Bugs prevented</p>
+            <p className="stat-value">{stats.bugsPrevented}</p>
+          </div>
+        </div>
 
-      <section className="section">
-        <h2>Stake $BRAIN on a submission</h2>
-        <p className="section-intro">
-          Staking puts a small refundable deposit behind a pack/rule submission. If the rule
-          graduates (5 distinct repo/user pairs fixed within 90 days), the stake feeds the $BRAIN
-          bounty pool that pays out the author — this is the flywheel: stakes fund bounties,
-          bounties reward graduated rules, graduated rules grow the registry. If a submission is
-          rejected, you can reclaim your stake. Connect a wallet, register your submission, and
-          pay in one step. The USD amount below is what you're committing; we convert it to a
-          live token amount for you at today's price, and $BRAIN gets a 10% discount on the
-          equivalent USD stake.
-        </p>
         <StakeSection packs={packs} />
-      </section>
 
-      <section className="section">
-        <h2>How telemetry works</h2>
-        <p className="section-intro">
-          When <code className="code-pill">brainblast fix --apply</code> mechanically fixes a
-          confirmed FAIL for a rule that belongs to a registered pack, it can optionally record a
-          one-way-hashed graduation event (<code className="code-pill">POST /api/telemetry</code>
-          ). A rule graduates once 5 distinct repo/user pairs have fixed it within a 90-day
-          window — the basis for the $BRAIN bounty pool at{" "}
-          <span className="code-pill">{BOUNTY_POOL_WALLET}</span>.
-        </p>
-      </section>
+        <section>
+          <h2>New knowledge packs</h2>
+          {newPacks.length === 0 ? (
+            <p className="muted">No packs registered yet.</p>
+          ) : (
+            <div className="grid grid-4">
+              {newPacks.map((p) => (
+                <PackCard pack={p} key={p.pack_id} />
+              ))}
+            </div>
+          )}
+        </section>
 
-      <footer className="footer">
-        <p>
-          brainblast registry — backend for the{" "}
-          <a href="https://github.com/DSB-117/brainblast" style={{ color: "var(--cyan)" }}>
-            brainblast
-          </a>{" "}
-          rule-pack incentive flywheel. See the{" "}
-          <a
-            href="https://github.com/DSB-117/brainblast-registry"
-            style={{ color: "var(--cyan)" }}
-          >
-            README
-          </a>{" "}
-          for the full API.
-        </p>
-      </footer>
+        <section>
+          <h2>Popular knowledge packs</h2>
+          {popularPacks.length === 0 ? (
+            <p className="muted">No packs registered yet.</p>
+          ) : (
+            <div className="grid grid-4">
+              {popularPacks.map((p) => (
+                <PackCard pack={p} key={p.pack_id} />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+
+      <aside className="aside">
+        <div className="card glass sidebar-card">
+          <p className="sidebar-card-title">How it works</p>
+          <div className="step">
+            <div className="step-number">1</div>
+            <div className="step-body">
+              <h3>Register</h3>
+              <p>
+                Connect a wallet, pick a pack and rule ID, and submit. You'll get a memo code and
+                a USD-denominated stake amount.
+              </p>
+            </div>
+          </div>
+          <div className="step">
+            <div className="step-number">2</div>
+            <div className="step-body">
+              <h3>Stake</h3>
+              <p>
+                Pay your stake in SOL, USDC, or $BRAIN (10% discount). The amount shown is
+                converted from USD using live prices.
+              </p>
+            </div>
+          </div>
+          <div className="step">
+            <div className="step-number">3</div>
+            <div className="step-body">
+              <h3>Graduate</h3>
+              <p>
+                When <code className="code-pill">brainblast fix --apply</code> fixes a confirmed
+                FAIL for your rule, it can record a graduation event. Once 5 distinct repo/user
+                pairs fix it within 90 days, the rule graduates.
+              </p>
+            </div>
+          </div>
+          <div className="step">
+            <div className="step-number">4</div>
+            <div className="step-body">
+              <h3>Earn or reclaim</h3>
+              <p>
+                Graduated stakes feed the $BRAIN bounty pool that pays the author. Rejected
+                submissions can reclaim their stake.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card glass sidebar-card">
+          <p className="sidebar-card-title">Bounty pool</p>
+          <p className="muted" style={{ wordBreak: "break-all" }}>
+            <span className="code-pill">{BOUNTY_POOL_WALLET}</span>
+          </p>
+          <p className="muted">
+            Funded by graduated stakes — the basis for{" "}
+            <code className="code-pill">POST /api/telemetry</code> graduation events.
+          </p>
+        </div>
+
+        <div className="card glass sidebar-card">
+          <p className="muted">
+            brainblast registry — backend for the{" "}
+            <a href="https://github.com/DSB-117/brainblast" style={{ color: "var(--cyan)" }}>
+              brainblast
+            </a>{" "}
+            rule-pack incentive flywheel. See the{" "}
+            <a href="https://github.com/DSB-117/brainblast-registry" style={{ color: "var(--cyan)" }}>
+              README
+            </a>{" "}
+            for the full API.
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }

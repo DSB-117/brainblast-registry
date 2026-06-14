@@ -64,11 +64,13 @@ export async function POST(req: NextRequest) {
   });
 }
 
-// GET /api/stakes?status=pending_payment&memo_code=BB-xxxxxxxx — list stake
-// submissions, optionally filtered by status and/or memo_code.
+// GET /api/stakes?status=pending_payment&memo_code=BB-xxxxxxxx&author_wallet=... —
+// list stake submissions, optionally filtered by status, memo_code, and/or
+// author_wallet (used by the registry dashboard to show "your submissions").
 export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get("status");
   const memoCode = req.nextUrl.searchParams.get("memo_code");
+  const authorWallet = req.nextUrl.searchParams.get("author_wallet");
   const db = supabaseAdmin();
 
   let query = db
@@ -78,6 +80,7 @@ export async function GET(req: NextRequest) {
 
   if (status) query = query.eq("status", status);
   if (memoCode) query = query.eq("memo_code", memoCode);
+  if (authorWallet) query = query.eq("author_wallet", authorWallet);
 
   const { data, error } = await query;
   if (error) {
