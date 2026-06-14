@@ -211,7 +211,9 @@ export default async function Home() {
               <h3>Stake</h3>
               <p>
                 Pay your stake in SOL, USDC, or $BRAIN (10% discount). The amount shown is
-                converted from USD using live prices.
+                converted from USD using live prices. <strong>$5 is the suggested minimum</strong> —
+                enough to cover indexer/gas costs and show you'll maintain the rule. Stake more
+                for higher visibility once your pack graduates.
               </p>
             </div>
           </div>
