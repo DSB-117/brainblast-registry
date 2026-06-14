@@ -103,6 +103,24 @@ export async function fetchIncomingTransfers(
   return transfers;
 }
 
+// Firm on-chain SPL token balance held by `wallet` for `mint`, summed across
+// all of the wallet's token accounts for that mint (usually just one ATA).
+export async function fetchTokenBalance(
+  wallet: string,
+  mint: string,
+  rpcUrl: string = defaultRpcUrl(),
+): Promise<number> {
+  const result = await rpcCall<{ value: any[] }>(rpcUrl, "getTokenAccountsByOwner", [
+    wallet,
+    { mint },
+    { encoding: "jsonParsed" },
+  ]);
+  return (result.value ?? []).reduce((sum, acc: any) => {
+    const uiAmount = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount ?? 0;
+    return sum + Number(uiAmount);
+  }, 0);
+}
+
 function extractMemo(tx: any): string | null {
   const instructions = tx.transaction?.message?.instructions ?? [];
   for (const ix of instructions) {
