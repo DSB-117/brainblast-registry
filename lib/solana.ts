@@ -1,6 +1,8 @@
 // Minimal Solana RPC client for the stake indexer (Phase 6). Avoids
 // @solana/web3.js — this only needs a couple of read-only JSON-RPC calls.
 
+import { TOKENS } from "./tokens";
+
 const MEMO_PROGRAM_IDS = new Set([
   "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr", // memo v2
   "Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo", // memo v1
@@ -41,19 +43,62 @@ export interface IncomingTransfer {
   amount: number; // lamports (SOL) or token amount in human units (SPL)
 }
 
+// Token accounts owned by `wallet` for a given mint (usually just its ATA).
+async function fetchTokenAccountAddresses(
+  wallet: string,
+  mint: string,
+  rpcUrl: string,
+): Promise<string[]> {
+  const result = await rpcCall<{ value: any[] }>(rpcUrl, "getTokenAccountsByOwner", [
+    wallet,
+    { mint },
+    { encoding: "jsonParsed" },
+  ]);
+  return (result.value ?? []).map((acc: any) => acc.pubkey);
+}
+
 // Fetches recent transactions for `wallet` and extracts any that carry a
 // memo instruction, along with the net amount transferred *to* `wallet` in
 // that transaction (best-effort: SOL balance delta, or SPL token balance
 // delta for a token account owned by `wallet`).
+//
+// SPL token transfers to an *existing* associated token account never
+// include the owner wallet's pubkey in the transaction's account keys, so
+// getSignaturesForAddress(wallet) alone misses them. We additionally scan
+// the wallet's known token accounts (one per accepted mint) and merge by
+// signature.
 export async function fetchIncomingTransfers(
   wallet: string,
   rpcUrl: string = defaultRpcUrl(),
   limit = 50,
 ): Promise<IncomingTransfer[]> {
-  const sigs = await rpcCall<SignatureInfo[]>(rpcUrl, "getSignaturesForAddress", [
-    wallet,
-    { limit },
-  ]);
+  const tokenMints: string[] = [];
+  for (const t of Object.values(TOKENS)) {
+    if (typeof t.mint === "string") tokenMints.push(t.mint);
+  }
+
+  const tokenAccountLists = await Promise.all(
+    tokenMints.map((mint) => fetchTokenAccountAddresses(wallet, mint, rpcUrl).catch(() => [])),
+  );
+
+  const addresses = [wallet, ...new Set(tokenAccountLists.flat())];
+
+  const sigSets = await Promise.all(
+    addresses.map((addr) =>
+      rpcCall<SignatureInfo[]>(rpcUrl, "getSignaturesForAddress", [addr, { limit }]),
+    ),
+  );
+
+  const seen = new Set<string>();
+  const sigs: SignatureInfo[] = [];
+  for (const set of sigSets) {
+    for (const s of set) {
+      if (!seen.has(s.signature)) {
+        seen.add(s.signature);
+        sigs.push(s);
+      }
+    }
+  }
 
   const transfers: IncomingTransfer[] = [];
 
