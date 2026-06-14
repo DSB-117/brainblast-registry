@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import StakePayment, { type StakeInfo } from "./StakePayment";
-import { TOKENS, type TokenSymbol } from "../lib/tokens";
+import { TOKENS, BRAIN_DISCOUNT, type TokenSymbol } from "../lib/tokens";
+import { fetchUsdPrices } from "../lib/price";
 
 interface PackOption {
   pack_id: string;
@@ -21,6 +22,45 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [stake, setStake] = useState<StakeInfo | null>(null);
+  const [price, setPrice] = useState<number | null>(null);
+  const [priceError, setPriceError] = useState("");
+
+  // Live USD price for the selected token, so the registration form can show
+  // roughly how much the user is about to commit before they pay.
+  useEffect(() => {
+    let cancelled = false;
+    setPrice(null);
+    setPriceError("");
+
+    fetchUsdPrices([TOKENS[token].priceMint])
+      .then((prices) => {
+        if (cancelled) return;
+        const p = prices[TOKENS[token].priceMint];
+        if (!p) {
+          setPriceError("Live price unavailable.");
+          return;
+        }
+        setPrice(p);
+      })
+      .catch(() => {
+        if (!cancelled) setPriceError("Live price lookup failed.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const usdOwed = useMemo(() => {
+    const usd = Number(stakeUsd);
+    if (!usd || usd <= 0) return null;
+    return token === "BRAIN" ? usd * (1 - BRAIN_DISCOUNT) : usd;
+  }, [stakeUsd, token]);
+
+  const estimatedAmount = useMemo(() => {
+    if (!price || price <= 0 || usdOwed === null) return null;
+    return usdOwed / price;
+  }, [price, usdOwed]);
 
   async function register() {
     if (!publicKey) return;
@@ -129,9 +169,21 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
               </select>
             </label>
           </div>
-          {token === "BRAIN" && (
-            <p className="token-discount">
-              Paying with $BRAIN: you'll owe ~10% less than the ${stakeUsd || "0"} USD stake.
+          {usdOwed !== null && (
+            <p className={token === "BRAIN" ? "token-discount" : "muted"} style={{ margin: 0 }}>
+              {token === "BRAIN" && (
+                <>You'll owe ~10% less than the ${stakeUsd || "0"} USD stake — </>
+              )}
+              {estimatedAmount !== null ? (
+                <>
+                  ≈ {estimatedAmount.toFixed(estimatedAmount < 1 ? 6 : 2)} {TOKENS[token].symbol} at
+                  today's price (~${usdOwed.toFixed(2)}).
+                </>
+              ) : priceError ? (
+                priceError
+              ) : (
+                "Fetching live price…"
+              )}
             </p>
           )}
           <button className="button button-primary" onClick={register} disabled={busy}>

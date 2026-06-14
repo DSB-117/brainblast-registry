@@ -90,10 +90,13 @@ export default async function Home() {
         <h2>Stake $BRAIN on a submission</h2>
         <p className="section-intro">
           Staking puts a small refundable deposit behind a pack/rule submission. If the rule
-          graduates (5 distinct repo/user pairs fixed within 90 days), the stake contributes to
-          the author bounty; if it's rejected, you can reclaim it. Connect a wallet, register your
-          submission, and pay in one step — $BRAIN gets a 10% discount on the equivalent USD
-          stake.
+          graduates (5 distinct repo/user pairs fixed within 90 days), the stake feeds the $BRAIN
+          bounty pool that pays out the author — this is the flywheel: stakes fund bounties,
+          bounties reward graduated rules, graduated rules grow the registry. If a submission is
+          rejected, you can reclaim your stake. Connect a wallet, register your submission, and
+          pay in one step. The USD amount below is what you're committing; we convert it to a
+          live token amount for you at today's price, and $BRAIN gets a 10% discount on the
+          equivalent USD stake.
         </p>
         <StakeSection packs={packs} />
       </section>
