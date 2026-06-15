@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../lib/supabase";
-import { BOUNTY_POOL_WALLET, fetchTokenBalance } from "../../lib/solana";
-import { TOKENS } from "../../lib/tokens";
+import { BOUNTY_POOL_WALLET } from "../../lib/solana";
+import { TOKENS, BRAIN_DISCOUNT } from "../../lib/tokens";
+import { fetchUsdPrices } from "../../lib/price";
 import StakeSection from "../../components/StakeSection";
 import WalletButton from "../../components/WalletButton";
 import WalletBalances from "../../components/WalletBalances";
@@ -43,13 +44,36 @@ async function getPacks(): Promise<Pack[]> {
 async function getStats(): Promise<Stats> {
   try {
     const db = supabaseAdmin();
-    const [packsRes, bugsRes, brainStaked] = await Promise.all([
+    const [packsRes, stakedRes, pendingRes, bugsRes] = await Promise.all([
       db.from("pack_registry").select("*", { count: "exact", head: true }),
+      db
+        .from("stake_submissions")
+        .select("token_amount")
+        .in("status", ["staked", "graduated"])
+        .eq("token_mint", BRAIN_MINT),
+      db.from("stake_submissions").select("stake_usd").eq("status", "pending_payment"),
       db.from("telemetry_events").select("*", { count: "exact", head: true }),
-      // Firm on-chain $BRAIN balance held by the bounty pool wallet — a
-      // non-fluctuating figure rather than a price-dependent estimate.
-      fetchTokenBalance(BOUNTY_POOL_WALLET, BRAIN_MINT).catch(() => 0),
     ]);
+
+    // Sum of actual $BRAIN tokens staked (only stakes paid in $BRAIN — other
+    // tokens contribute to the bounty pool but aren't counted here).
+    let brainStaked = (stakedRes.data ?? []).reduce((sum, r: any) => sum + Number(r.token_amount ?? 0), 0);
+
+    // Pending submissions haven't paid on-chain yet, so we don't know what
+    // token they'll use — estimate the $BRAIN amount at today's price
+    // (with the $BRAIN discount) so the stat isn't misleadingly low.
+    const pendingUsd = (pendingRes.data ?? []).reduce((sum, r: any) => sum + Number(r.stake_usd ?? 0), 0);
+    if (pendingUsd > 0) {
+      try {
+        const prices = await fetchUsdPrices([TOKENS.BRAIN.priceMint]);
+        const brainPrice = prices[TOKENS.BRAIN.priceMint];
+        if (brainPrice) {
+          brainStaked += (pendingUsd * (1 - BRAIN_DISCOUNT)) / brainPrice;
+        }
+      } catch {
+        // ignore — pending estimate just won't be included
+      }
+    }
 
     return {
       packsSubmitted: packsRes.count ?? 0,
