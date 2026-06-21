@@ -85,20 +85,47 @@ async function getStats(): Promise<Stats> {
   }
 }
 
+function inferCategory(pack_id: string): string {
+  if (/solana|spl|anchor|metaplex|pump|jito|raydium/i.test(pack_id)) return "Solana";
+  if (/stripe|payment|webhook|billing/i.test(pack_id)) return "Payments";
+  if (/auth|privy|oauth|jwt|token/i.test(pack_id)) return "Auth";
+  if (/openai|anthropic|llm|ai|agent/i.test(pack_id)) return "AI";
+  if (/aws|gcp|azure|cloud/i.test(pack_id)) return "Cloud";
+  return "Web3";
+}
+
 function PackCard({ pack }: { pack: Pack }) {
+  const category = inferCategory(pack.pack_id);
   return (
-    <div className="card glass pack-card">
-      <h3>
-        <span>{pack.name}</span>
-        {pack.latest_version && <span className="code-pill">v{pack.latest_version}</span>}
-      </h3>
+    <div className="pack-card">
+      <div className="pack-card-topline">
+        <span className="pack-category">{category}</span>
+        {pack.latest_version && (
+          <span className="pack-version-badge">v{pack.latest_version}</span>
+        )}
+      </div>
+      <h3>{pack.name}</h3>
+      {pack.description && <p>{pack.description}</p>}
       <p className="pack-id">{pack.pack_id}</p>
-      {pack.description && <p style={{ marginTop: 8 }}>{pack.description}</p>}
       <div className="pack-meta">
         {pack.author && <span>by {pack.author}</span>}
         <a href={pack.repo_url} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
           repo →
         </a>
+      </div>
+    </div>
+  );
+}
+
+const TICKER_ITEMS = ["STAKE", "GRADUATE", "EARN", "SOLANA", "ENFORCE", "RESEARCH", "COMPOUND", "GUARDRAILS"];
+function TickerStrip() {
+  const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
+  return (
+    <div className="ticker-strip">
+      <div className="ticker-track">
+        {items.map((item, i) => (
+          <span key={i}>{item} ·</span>
+        ))}
       </div>
     </div>
   );
@@ -164,9 +191,11 @@ export default async function Home() {
           </div>
         </div>
 
+        <TickerStrip />
+
         <StakeSection packs={packs} />
 
-        <section>
+        <div className="packs-section">
           <h2>New knowledge packs</h2>
           {newPacks.length === 0 ? (
             <p className="muted">No packs registered yet.</p>
@@ -177,9 +206,9 @@ export default async function Home() {
               ))}
             </div>
           )}
-        </section>
+        </div>
 
-        <section>
+        <div className="packs-section">
           <h2>Popular knowledge packs</h2>
           {popularPacks.length === 0 ? (
             <p className="muted">No packs registered yet.</p>
@@ -190,7 +219,7 @@ export default async function Home() {
               ))}
             </div>
           )}
-        </section>
+        </div>
       </main>
 
       <aside className="aside">
