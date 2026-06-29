@@ -17,6 +17,30 @@ incentive flywheel, deployed at `app.brainblast.tech`.
 - **`POST /api/packs`** — refreshes the mirror from the GitHub index.
   Protected by `SYNC_TOKEN`.
 
+### Distribution endpoint — the verified-trap marketplace (R3)
+
+The hosted half of the training-data market. The server holds the full VTI
+corpus; a client with a signed grant receives only what its tier entitles. The
+request logic is the **vendored brainblast distribution surface** (`lib/brainblast/`,
+synced from the `brainblast/distribution` subpath — the same `handleRequest` the
+`brainblast serve` CLI runs), so this app never pulls brainblast's native deps.
+
+- **`GET /api/catalog`** — the storefront. **Public + anonymous**: coverage,
+  freshness, the tier/price ladder, receipt-only teasers.
+- **`GET /api/feed`** — **anonymous → the open sample tier** (receipt-only); with
+  an `x-brainblast-grant: <base64 grant JSON>` header → the **entitled tier**,
+  verified against `BRAINBLAST_MARKET_PUBKEY` (ed25519, **no shared secret**).
+  Filter with `?sdk=&class=&severity=&min_corroboration=&since=&limit=`. A grant's
+  lot-scope is enforced server-side. Gated pulls are metered to the hash-chained
+  `usage_ledger` table (rejected pulls are never metered; a broken ledger
+  fail-closes).
+- **`GET /api/healthz`** — liveness + corpus size.
+
+The VTI corpus is fetched from the brainblast repo's published lot
+(`VTI_SOURCE_URL`, default the `v0.1.0` full lot on `main`) and cached per warm
+instance. Issue grants offline with `brainblast grant keygen` / `grant issue`;
+publish only the `.address` here (`BRAINBLAST_MARKET_PUBKEY`).
+
 ### Submission staking (memo + indexer v1)
 
 A simple, non-custodial-program staking flow for pack/rule submissions:

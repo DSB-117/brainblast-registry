@@ -87,3 +87,24 @@ create table if not exists refund_requests (
   processed_at timestamptz,
   refund_tx_signature text
 );
+
+-- Authoritative metering for the distribution endpoint (R3). Append-only,
+-- hash-chained: each row's `hash` covers the prior row's `hash` (prev_hash), so
+-- any edit/removal of history breaks the chain. `seq` is the primary key, so a
+-- concurrent race produces a duplicate-key error (the request 500s and the
+-- client retries) rather than a forked chain. Written only by GET /api/feed for
+-- grant-backed pulls.
+create table if not exists usage_ledger (
+  seq bigint primary key,
+  prev_hash text not null,
+  hash text not null,
+  ts timestamptz not null,
+  buyer text not null,
+  tier text not null,
+  lots jsonb not null default '[]'::jsonb,
+  records_served integer not null,
+  cursor text,
+  query jsonb,
+  received_at timestamptz not null default now()
+);
+create index if not exists usage_ledger_buyer_idx on usage_ledger (buyer);
