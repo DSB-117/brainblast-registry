@@ -1,0 +1,48 @@
+// Barrel for the vendored brainblast distribution surface. Mirrors the upstream
+// `brainblast/distribution` subpath export. See the per-file headers — sync from
+// upstream; do not hand-edit the vendored modules.
+
+export {
+  handleRequest,
+  type ServerRequest,
+  type ServerResponse,
+  type ServerDeps,
+  type ServerLot,
+} from "./server";
+
+export {
+  buildCatalog,
+  renderCatalogMd,
+  issueGrant,
+  verifyGrant,
+  generateDistributorKeypair,
+  addressFromSecretKey,
+  appendUsage,
+  verifyLedger,
+  summarizeUsage,
+  canonicalJson,
+  TIER_PRICING,
+  LEDGER_GENESIS,
+  type CatalogResult,
+  type Grant,
+  type GrantSigner,
+  type GrantVerifier,
+  type GrantVerification,
+  type DistributorKeypair,
+  type UsageRecord,
+  type UsageEntry,
+} from "./marketplace";
+
+export {
+  selectFeed,
+  tierForBrain,
+  TIER_ENTITLEMENTS,
+  type FeedTier,
+  type FeedQuery,
+  type FeedResult,
+  type FeedRecord,
+} from "./feed";
+
+export { scoreVti, type CorpusVti } from "./corpus";
+export { TRAP_CLASSES, classifyTrap, type TrapClass } from "./vtiClass";
+export { base58Encode, base58Decode } from "./base58";
