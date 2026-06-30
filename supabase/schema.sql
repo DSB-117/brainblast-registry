@@ -108,3 +108,15 @@ create table if not exists usage_ledger (
   received_at timestamptz not null default now()
 );
 create index if not exists usage_ledger_buyer_idx on usage_ledger (buyer);
+
+-- Fleet ledger (R7 autonomy). The shared "already-investigated" record so sibling
+-- scout fleets don't re-scout the same repositories. One row per repo; `traps` is
+-- the list of trap ids the fleet promoted from that repo (empty = scouted clean).
+-- Written by `npm run fleet:ledger`; read by `npm run fleet:discover` to skip.
+create table if not exists fleet_ledger (
+  repo text primary key,
+  sdk text,
+  traps jsonb not null default '[]'::jsonb,
+  investigated_at timestamptz not null default now()
+);
+create index if not exists fleet_ledger_sdk_idx on fleet_ledger (sdk);
