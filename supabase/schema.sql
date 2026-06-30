@@ -117,20 +117,18 @@ create table if not exists fleet_ledger (
   repo text primary key,
   sdk text,
   traps jsonb not null default '[]'::jsonb,
-  investigated_at timestamptz not null default now(),
-  investigated_by text  -- the fleet-token label that recorded it (audit trail)
+  investigated_at timestamptz not null default now()
 );
 create index if not exists fleet_ledger_sdk_idx on fleet_ledger (sdk);
 
--- Per-operator fleet tokens. Outside fleet operators authenticate to
--- /api/fleet-ledger with one of these (Bearer) instead of ever holding the
--- Supabase service-role key. Only the SHA-256 hash is stored, so a DB leak does
--- not reveal usable tokens. Issued + revoked via /api/fleet-tokens (admin).
-create table if not exists fleet_tokens (
+-- Abuse log for the OPEN POST /api/fleet-ledger. One row per recorded repo,
+-- keyed by a SALTED HASH of the submitter IP (never the raw IP) — used only to
+-- rate-limit per IP (HOURLY_REPO_CAP). Prune rows older than ~1 day on a cron.
+create table if not exists fleet_ledger_audit (
   id bigint generated always as identity primary key,
-  label text not null,            -- human name for the operator/fleet
-  token_hash text not null unique, -- sha256(token), hex
-  created_at timestamptz not null default now(),
-  revoked_at timestamptz           -- non-null => disabled
+  ip_hash text not null,
+  repo text not null,
+  recorded_at timestamptz not null default now()
 );
-create index if not exists fleet_tokens_hash_idx on fleet_tokens (token_hash);
+create index if not exists fleet_ledger_audit_ip_time_idx
+  on fleet_ledger_audit (ip_hash, recorded_at desc);
