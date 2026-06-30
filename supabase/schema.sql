@@ -117,6 +117,20 @@ create table if not exists fleet_ledger (
   repo text primary key,
   sdk text,
   traps jsonb not null default '[]'::jsonb,
-  investigated_at timestamptz not null default now()
+  investigated_at timestamptz not null default now(),
+  investigated_by text  -- the fleet-token label that recorded it (audit trail)
 );
 create index if not exists fleet_ledger_sdk_idx on fleet_ledger (sdk);
+
+-- Per-operator fleet tokens. Outside fleet operators authenticate to
+-- /api/fleet-ledger with one of these (Bearer) instead of ever holding the
+-- Supabase service-role key. Only the SHA-256 hash is stored, so a DB leak does
+-- not reveal usable tokens. Issued + revoked via /api/fleet-tokens (admin).
+create table if not exists fleet_tokens (
+  id bigint generated always as identity primary key,
+  label text not null,            -- human name for the operator/fleet
+  token_hash text not null unique, -- sha256(token), hex
+  created_at timestamptz not null default now(),
+  revoked_at timestamptz           -- non-null => disabled
+);
+create index if not exists fleet_tokens_hash_idx on fleet_tokens (token_hash);

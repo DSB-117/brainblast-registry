@@ -41,6 +41,33 @@ The VTI corpus is fetched from the brainblast repo's published lot
 instance. Issue grants offline with `brainblast grant keygen` / `grant issue`;
 publish only the `.address` here (`BRAINBLAST_MARKET_PUBKEY`).
 
+### Fleet ledger — onboarding outside scout fleets (R7)
+
+The shared "already-investigated" record (`fleet_ledger`) lets independent scout
+fleets avoid re-scouting the same repos. Outside operators read/write it with a
+**per-fleet token** — they **never hold the Supabase service-role key**; only this
+server does.
+
+- **`GET` / `POST /api/fleet-ledger`** — read the investigated set / record
+  scouted repos. Authenticated with a fleet token (`Authorization: Bearer
+  bbflt_…`). Used by `npm run fleet:discover` and `npm run fleet:ledger`.
+- **`POST` / `GET` / `DELETE /api/fleet-tokens`** — admin (gated by `SYNC_TOKEN`):
+  issue, list, and revoke operator tokens. Only `sha256(token)` is stored; the raw
+  token is returned **once** on issue.
+
+**Onboard an operator** (you, the owner):
+
+```bash
+curl -X POST https://registry.brainblast.tech/api/fleet-tokens \
+  -H "authorization: Bearer $SYNC_TOKEN" -H "content-type: application/json" \
+  -d '{"label":"acme-fleet"}'
+# -> { "id": 1, "label": "acme-fleet", "token": "bbflt_…" }   ← give THIS to the operator (shown once)
+```
+
+The operator then sets `FLEET_REGISTRY_URL=https://registry.brainblast.tech` +
+`FLEET_TOKEN=bbflt_…` (no Supabase key) and runs the fleet. **Revoke** anytime:
+`curl -X DELETE ".../api/fleet-tokens?label=acme-fleet" -H "authorization: Bearer $SYNC_TOKEN"`.
+
 ### Submission staking (memo + indexer v1)
 
 A simple, non-custodial-program staking flow for pack/rule submissions:
