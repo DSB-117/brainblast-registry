@@ -41,6 +41,35 @@ The VTI corpus is fetched from the brainblast repo's published lot
 instance. Issue grants offline with `brainblast grant keygen` / `grant issue`;
 publish only the `.address` here (`BRAINBLAST_MARKET_PUBKEY`).
 
+### Fleet ledger — the shared "already-investigated" record (R7)
+
+`fleet_ledger` lets independent scout fleets avoid re-scouting the same repos.
+It's **open and server-validated** — any fleet pushes to it with **no token and no
+key**. The Supabase service-role key never leaves this server; the server
+validates every submission before it lands.
+
+- **`GET /api/fleet-ledger`** — the investigated-repo set (so a fleet's discovery
+  skips what's done).
+- **`POST /api/fleet-ledger`** — record scouted repos. Body `{ rows: [{ repo,
+  sdk?, traps? }] }`. No auth — **griefing is handled by the server**, not by
+  gating honest fleets:
+  1. **Rate limit** — per-IP cap (`HOURLY_REPO_CAP`) on repos recorded per hour
+     (IP is salted-hashed, never stored raw; `fleet_ledger_audit`).
+  2. **Repo verification** — a *new* repo must exist on GitHub and clear
+     `MIN_STARS` (set `GITHUB_TOKEN` to enable; without it this check is skipped).
+     You can't suppress fabricated or obscure repos.
+  3. **Non-destructive merge** — re-recording a known repo **unions** its traps;
+     a submission can never erase what another fleet found.
+  4. **Freshness TTL** (consumer-side) — `fleet:discover` only skips a repo
+     investigated within `--max-age-days` (default 30), so a false row suppresses
+     a repo for at most the TTL, and stale repos get re-scouted.
+
+Operators just run the fleet — by default it talks to `registry.brainblast.tech`;
+override with `FLEET_REGISTRY_URL`. Nothing to issue, nothing to hold.
+
+Optional server env: `GITHUB_TOKEN` (enables repo verification), `FLEET_IP_SALT`
+(salts the IP hashes). Prune `fleet_ledger_audit` rows older than a day on a cron.
+
 ### Submission staking (memo + indexer v1)
 
 A simple, non-custodial-program staking flow for pack/rule submissions:
