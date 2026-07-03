@@ -164,7 +164,7 @@ export default function Earn() {
       <div className="glass" style={{ borderRadius: "var(--radius-xl)", padding: "36px 32px", textAlign: "center", border: "1px solid rgba(52,211,153,0.3)" }}>
         <h2 style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 10px" }}>Ready to contribute?</h2>
         <p style={{ fontSize: 14.5, color: "var(--ink-2)", margin: "0 auto 22px", maxWidth: 460, lineHeight: 1.6 }}>
-          Tell us the SDKs you work with. We&apos;ll get you set up with the contributor toolchain and a founding-contributor stake.
+          The CLI is already public — <span className="mono" style={{ color: "var(--ink)" }}>npx brainblast</span>. Tell us the SDKs you work with and we&apos;ll walk you through your first submission and onboard you as a founding contributor.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <a href={applyHref} style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600 }}>Become a contributor</a>
