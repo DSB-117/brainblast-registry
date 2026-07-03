@@ -14,7 +14,7 @@ const PATHS = [
     tint: "rgba(34,211,238,0.14)",
     tag: "MCP",
     title: "brainblast_recall",
-    body: "Wire the corpus into your agent. Before writing an integration, the model recalls the verified traps for that SDK — so it writes correct code the first time.",
+    body: "Wire the corpus into your agent. Before writing an integration, the model recalls the verified records for that SDK — so it writes correct code the first time.",
     code: ['{ "mcpServers": {', '    "brainblast": {', '      "command": "npx",', '      "args": ["brainblast", "mcp"] } } }'],
   },
   {

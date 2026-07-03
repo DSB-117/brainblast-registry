@@ -108,7 +108,7 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
   return (
     <div className="card glass submission-card">
       <div className="card-header">
-        <h3>{stake ? "Step 2 — pay your stake" : "Submit a knowledge pack"}</h3>
+        <h3>{stake ? "Step 2 — pay your stake" : "Register a rule"}</h3>
       </div>
 
       {!publicKey && (
@@ -191,7 +191,7 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
             </p>
           )}
           <button className="button button-primary" onClick={register} disabled={busy}>
-            {busy ? "Registering…" : "Submit knowledge pack"}
+            {busy ? "Registering…" : "Register & stake"}
           </button>
           {error && <p className="status-line error">{error}</p>}
         </div>

@@ -32,7 +32,7 @@ const OFFERS = [
     accent: "#34d399",
     featured: true,
     blurb: "We test your model against the corpus and score it.",
-    feat: ["A scorecard: which footguns it still ships", "Held-out suite, re-run on every release", "Priced per model — recurring"],
+    feat: ["A scorecard: which bugs it still ships", "Held-out suite, re-run on every release", "Priced per model — recurring"],
     deliverable: "A written scorecard + machine-readable results, re-run on each model release.",
     bestFor: "Teams shipping models or agents on top of these SDKs.",
     cta: "Book an eval",
@@ -49,7 +49,7 @@ const OFFERS = [
     blurb: "License the full dataset to train or fine-tune on.",
     feat: ["Every vulnerable + fixed fixture", "The continuous verified delta", "Pay in USD — or hold $BRAIN for 10% off"],
     deliverable: "The full fixture dataset (versioned download) + the live verified delta feed, under a training license.",
-    bestFor: "Labs training or fine-tuning code models on real footguns.",
+    bestFor: "Labs training or fine-tuning code models on real-world bugs.",
     cta: "Request access",
     href: "/access",
   },
@@ -129,7 +129,7 @@ export default function Offers({ detailed = false }: { detailed?: boolean }) {
       </div>
 
       <Link
-        href={mailto("Sponsor scouting — point the fleet at our SDKs", "We'd like to sponsor verified-trap scouting for the SDKs we build on.\n\nSDKs / protocols:\nWhat you'd want covered:\n")}
+        href={mailto("Sponsor scouting — point the fleet at our SDKs", "We'd like to sponsor verified-bug scouting for the SDKs we build on.\n\nSDKs / protocols:\nWhat you'd want covered:\n")}
         className="glass lift"
         style={{ display: "flex", alignItems: "center", gap: 16, borderRadius: "var(--radius-lg)", padding: "20px 24px", marginTop: 18 }}
       >
@@ -138,7 +138,7 @@ export default function Offers({ detailed = false }: { detailed?: boolean }) {
         </span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Sponsor scouting</div>
-          <div style={{ fontSize: 13.5, color: "var(--ink-3)" }}>Point the autonomous fleet at your stack — fund verified traps for the SDKs you build on.</div>
+          <div style={{ fontSize: 13.5, color: "var(--ink-3)" }}>Point the autonomous fleet at your stack — fund verified findings for the SDKs you build on.</div>
         </div>
         <span style={{ fontSize: 13.5, color: "var(--ink-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
           Talk to us

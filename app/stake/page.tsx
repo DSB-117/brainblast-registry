@@ -46,40 +46,24 @@ async function getStats(): Promise<Stats> {
     const db = supabaseAdmin();
     const [packsRes, stakedRes, pendingRes, bugsRes] = await Promise.all([
       db.from("pack_registry").select("*", { count: "exact", head: true }),
-      db
-        .from("stake_submissions")
-        .select("token_amount")
-        .in("status", ["staked", "graduated"])
-        .eq("token_mint", BRAIN_MINT),
+      db.from("stake_submissions").select("token_amount").in("status", ["staked", "graduated"]).eq("token_mint", BRAIN_MINT),
       db.from("stake_submissions").select("stake_usd").eq("status", "pending_payment"),
       db.from("telemetry_events").select("*", { count: "exact", head: true }),
     ]);
 
-    // Sum of actual $BRAIN tokens staked (only stakes paid in $BRAIN — other
-    // tokens contribute to the bounty pool but aren't counted here).
     let brainStaked = (stakedRes.data ?? []).reduce((sum, r: any) => sum + Number(r.token_amount ?? 0), 0);
-
-    // Pending submissions haven't paid on-chain yet, so we don't know what
-    // token they'll use — estimate the $BRAIN amount at today's price
-    // (with the $BRAIN discount) so the stat isn't misleadingly low.
     const pendingUsd = (pendingRes.data ?? []).reduce((sum, r: any) => sum + Number(r.stake_usd ?? 0), 0);
     if (pendingUsd > 0) {
       try {
         const prices = await fetchUsdPrices([TOKENS.BRAIN.priceMint]);
         const brainPrice = prices[TOKENS.BRAIN.priceMint];
-        if (brainPrice) {
-          brainStaked += (pendingUsd * (1 - BRAIN_DISCOUNT)) / brainPrice;
-        }
+        if (brainPrice) brainStaked += (pendingUsd * (1 - BRAIN_DISCOUNT)) / brainPrice;
       } catch {
         // ignore — pending estimate just won't be included
       }
     }
 
-    return {
-      packsSubmitted: packsRes.count ?? 0,
-      brainStaked,
-      bugsPrevented: bugsRes.count ?? 0,
-    };
+    return { packsSubmitted: packsRes.count ?? 0, brainStaked, bugsPrevented: bugsRes.count ?? 0 };
   } catch {
     return { packsSubmitted: 0, brainStaked: 0, bugsPrevented: 0 };
   }
@@ -94,207 +78,110 @@ function inferCategory(pack_id: string): string {
   return "Web3";
 }
 
+const STEPS = [
+  ["Register", "Connect a wallet, pick your pack and rule ID, and submit. You get a memo code and a USD-denominated stake amount — no account, no approval."],
+  ["Stake", "Pay in SOL, USDC, or $BRAIN (10% off), converted from USD at live prices. $5 is the suggested minimum — enough to cover indexer/gas and show you'll maintain the rule."],
+  ["Graduate", "When brainblast confirms your rule's RED→GREEN fix across 5 distinct repos within 90 days, it graduates — the corroboration that makes a rule worth a buyer's money."],
+  ["Earn or reclaim", "Graduated stakes feed the $BRAIN bounty pool that pays you as the author. A rejected submission can always reclaim its stake."],
+];
+
 function PackCard({ pack }: { pack: Pack }) {
-  const category = inferCategory(pack.pack_id);
   return (
-    <div className="pack-card">
-      <div className="pack-card-topline">
-        <span className="pack-category">{category}</span>
-        {pack.latest_version && (
-          <span className="pack-version-badge">v{pack.latest_version}</span>
+    <div className="glass lift" style={{ borderRadius: "var(--radius-lg)", padding: 20, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <span style={{ fontSize: 11, fontWeight: 500, padding: "3px 9px", borderRadius: 999, background: "var(--glass-2)", color: "var(--ink-2)" }}>{inferCategory(pack.pack_id)}</span>
+        {pack.latest_version && <span className="mono" style={{ fontSize: 11, color: "var(--ink-4)" }}>v{pack.latest_version}</span>}
+      </div>
+      <h3 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 6px" }}>{pack.name}</h3>
+      {pack.description && <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 12px", lineHeight: 1.5 }}>{pack.description}</p>}
+      <div className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)", marginBottom: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pack.pack_id}</div>
+      <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12.5, color: "var(--ink-3)" }}>
+        {pack.author && <span>by {pack.author}</span>}
+        <a href={pack.repo_url} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)", marginLeft: "auto" }}>repo →</a>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "20px 22px" }}>
+      <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 8 }}>{label}</div>
+      <div className="mono grad-text" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em" }}>{value}</div>
+    </div>
+  );
+}
+
+export default async function StakePage() {
+  const [packs, stats] = await Promise.all([getPacks(), getStats()]);
+
+  return (
+    <div className="stake-app" style={{ maxWidth: 1120, margin: "0 auto", padding: "56px 28px 20px", animation: "fade 0.4s ease" }}>
+      <div style={{ marginBottom: 30 }}>
+        <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 12 }}>Contribute · Stake</div>
+        <h1 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Stake behind your rules</h1>
+        <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px 0 0", maxWidth: 660, lineHeight: 1.6 }}>
+          Author a rule that catches an SDK bug, stake behind it, and earn from the $BRAIN bounty pool when it graduates across real repos. Graduated rules become VTIs in the corpus buyers train and evaluate on. New here? <a href="/earn" style={{ color: "var(--emerald)" }}>Read the contributor guide →</a>
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 28 }}>
+        <Stat label="Rules staked" value={String(stats.packsSubmitted)} />
+        <Stat label="$BRAIN staked" value={stats.brainStaked.toLocaleString(undefined, { maximumFractionDigits: 0 })} />
+        <Stat label="Fixes recorded" value={String(stats.bugsPrevented)} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 22, alignItems: "start" }}>
+        {/* Left — the app */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="card glass sidebar-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Your wallet</div>
+              <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>Connect to register and pay a stake.</div>
+            </div>
+            <WalletButton />
+          </div>
+          <WalletBalances />
+          <StakeSection packs={packs} />
+          <MySubmissions />
+        </div>
+
+        {/* Right — how it works + bounty pool */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 84 }}>
+          <div className="card glass sidebar-card">
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>How it works</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {STEPS.map(([t, b], i) => (
+                <div key={t} style={{ display: "flex", gap: 13 }}>
+                  <span className="mono" style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--glass-2)", color: "var(--emerald)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 600 }}>{i + 1}</span>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 3 }}>{t}</div>
+                    <p style={{ fontSize: 12.5, color: "var(--ink-2)", margin: 0, lineHeight: 1.55 }}>{b}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card glass sidebar-card">
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Bounty pool</div>
+            <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 10px", lineHeight: 1.55 }}>Funded by graduated stakes — the source that pays rule authors.</p>
+            <div className="mono" style={{ fontSize: 11, color: "var(--ink-2)", wordBreak: "break-all", background: "rgba(0,0,0,0.35)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 12px" }}>{BOUNTY_POOL_WALLET}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Registry */}
+      <div style={{ marginTop: 44 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 16px" }}>Rules in the registry</h2>
+        {packs.length === 0 ? (
+          <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "36px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 14 }}>No rules registered yet — be the first to stake one.</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 16 }}>
+            {packs.map((p) => <PackCard pack={p} key={p.pack_id} />)}
+          </div>
         )}
       </div>
-      <h3>{pack.name}</h3>
-      {pack.description && <p>{pack.description}</p>}
-      <p className="pack-id">{pack.pack_id}</p>
-      <div className="pack-meta">
-        {pack.author && <span>by {pack.author}</span>}
-        <a href={pack.repo_url} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-          repo →
-        </a>
-      </div>
-    </div>
-  );
-}
-
-const TICKER_ITEMS = ["STAKE", "GRADUATE", "EARN", "SOLANA", "ENFORCE", "RESEARCH", "COMPOUND", "GUARDRAILS"];
-function TickerStrip() {
-  const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
-  return (
-    <div className="ticker-strip">
-      <div className="ticker-track">
-        {items.map((item, i) => (
-          <span key={i}>{item} ·</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default async function Home() {
-  const [packs, stats] = await Promise.all([getPacks(), getStats()]);
-  const newPacks = packs.slice(0, 4);
-  const popularPacks = [...packs].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 4);
-
-  return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="card glass sidebar-card">
-          <div className="brand" style={{ marginBottom: 14 }}>
-            <span className="brand-name">brainblast</span>
-            <span className="brand-sub">registry</span>
-          </div>
-          <WalletButton />
-        </div>
-
-        <WalletBalances />
-        <MySubmissions />
-
-        <a
-          className="button button-secondary sidebar-link"
-          href="https://brainblast.tech"
-          target="_blank"
-          rel="noreferrer"
-        >
-          brainblast.tech
-        </a>
-      </aside>
-
-      <main className="main-content">
-        <section>
-          <p className="eyebrow">Rule pack registry &amp; staking</p>
-          <h1 className="hero-title">The brainblast pack registry.</h1>
-          <p className="hero-lede">
-            Browse third-party rule packs for the{" "}
-            <a href="https://github.com/DSB-117/brainblast" style={{ color: "var(--cyan)" }}>
-              brainblast
-            </a>{" "}
-            auditor, track graduation telemetry toward the $BRAIN bounty pool, and stake $BRAIN,
-            SOL, or USDC behind your own pack submissions.
-          </p>
-        </section>
-
-        <div className="stat-grid">
-          <div className="card glass stat-card">
-            <p className="stat-label">Packs submitted</p>
-            <p className="stat-value">{stats.packsSubmitted}</p>
-          </div>
-          <div className="card glass stat-card">
-            <p className="stat-label">$BRAIN staked</p>
-            <p className="stat-value">
-              {stats.brainStaked.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="card glass stat-card">
-            <p className="stat-label">Bugs prevented</p>
-            <p className="stat-value">{stats.bugsPrevented}</p>
-          </div>
-        </div>
-
-        <TickerStrip />
-
-        <StakeSection packs={packs} />
-
-        <div className="packs-section">
-          <h2>New knowledge packs</h2>
-          {newPacks.length === 0 ? (
-            <p className="muted">No packs registered yet.</p>
-          ) : (
-            <div className="grid grid-4">
-              {newPacks.map((p) => (
-                <PackCard pack={p} key={p.pack_id} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="packs-section">
-          <h2>Popular knowledge packs</h2>
-          {popularPacks.length === 0 ? (
-            <p className="muted">No packs registered yet.</p>
-          ) : (
-            <div className="grid grid-4">
-              {popularPacks.map((p) => (
-                <PackCard pack={p} key={p.pack_id} />
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      <aside className="aside">
-        <div className="card glass sidebar-card">
-          <p className="sidebar-card-title">How it works</p>
-          <div className="step">
-            <div className="step-number">1</div>
-            <div className="step-body">
-              <h3>Register</h3>
-              <p>
-                Connect a wallet, pick a pack and rule ID, and submit. You'll get a memo code and
-                a USD-denominated stake amount.
-              </p>
-            </div>
-          </div>
-          <div className="step">
-            <div className="step-number">2</div>
-            <div className="step-body">
-              <h3>Stake</h3>
-              <p>
-                Pay your stake in SOL, USDC, or $BRAIN (10% discount). The amount shown is
-                converted from USD using live prices. <strong>$5 is the suggested minimum</strong> —
-                enough to cover indexer/gas costs and show you'll maintain the rule. Stake more
-                for higher visibility once your pack graduates.
-              </p>
-            </div>
-          </div>
-          <div className="step">
-            <div className="step-number">3</div>
-            <div className="step-body">
-              <h3>Graduate</h3>
-              <p>
-                When <code className="code-pill">brainblast fix --apply</code> fixes a confirmed
-                FAIL for your rule, it can record a graduation event. Once 5 distinct repo/user
-                pairs fix it within 90 days, the rule graduates.
-              </p>
-            </div>
-          </div>
-          <div className="step">
-            <div className="step-number">4</div>
-            <div className="step-body">
-              <h3>Earn or reclaim</h3>
-              <p>
-                Graduated stakes feed the $BRAIN bounty pool that pays the author. Rejected
-                submissions can reclaim their stake.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card glass sidebar-card">
-          <p className="sidebar-card-title">Bounty pool</p>
-          <p className="muted" style={{ wordBreak: "break-all" }}>
-            <span className="code-pill">{BOUNTY_POOL_WALLET}</span>
-          </p>
-          <p className="muted">
-            Funded by graduated stakes — the basis for{" "}
-            <code className="code-pill">POST /api/telemetry</code> graduation events.
-          </p>
-        </div>
-
-        <div className="card glass sidebar-card">
-          <p className="muted">
-            brainblast registry — backend for the{" "}
-            <a href="https://github.com/DSB-117/brainblast" style={{ color: "var(--cyan)" }}>
-              brainblast
-            </a>{" "}
-            rule-pack incentive flywheel. See the{" "}
-            <a href="https://github.com/DSB-117/brainblast-registry" style={{ color: "var(--cyan)" }}>
-              README
-            </a>{" "}
-            for the full API.
-          </p>
-        </div>
-      </aside>
     </div>
   );
 }

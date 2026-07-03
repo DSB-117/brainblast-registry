@@ -1,13 +1,13 @@
 const BACKENDS = [
   { tier: "T0", name: "static-checker", detail: "AST pattern match against the vulnerable shape. Offline, no code executed — the default.", time: "~4ms", color: "var(--emerald)", tint: "rgba(52,211,153,0.14)" },
   { tier: "T1", name: "compiler", detail: "Type-checks the candidate against the pinned SDK. Catches hallucinated or moved APIs with zero execution.", time: "~280ms", color: "var(--cyan)", tint: "rgba(34,211,238,0.14)" },
-  { tier: "T2", name: "executed-test", detail: "Runs a vetted contract test in a sandbox. A behavioral proof for traps with no static shape.", time: "~1.2s", color: "var(--violet)", tint: "rgba(139,123,255,0.14)" },
+  { tier: "T2", name: "executed-test", detail: "Runs a vetted contract test in a sandbox. A behavioral proof for bugs with no static shape.", time: "~1.2s", color: "var(--violet)", tint: "rgba(139,123,255,0.14)" },
   { tier: "T2", name: "differential", detail: "Runs the candidate against a golden input→output table. Catches wrong-constant / logic bugs.", time: "~1.8s", color: "var(--violet)", tint: "rgba(139,123,255,0.14)" },
 ];
 
 const GATES = [
   { n: 1, name: "secret-scan", detail: "Every file runs through Keyguard. One key refuses the whole submission — fail-closed." },
-  { n: 2, name: "RED→GREEN reproduction", detail: "The oracle re-proves the trap. This is the anti-poisoning gate: non-reproducing data can't land." },
+  { n: 2, name: "RED→GREEN reproduction", detail: "The oracle re-proves the finding. This is the anti-poisoning gate: non-reproducing data can't land." },
   { n: 3, name: "consent / license", detail: "Contributor-grant-v1 stamped, scope verified. Owned and contributed lots stay physically separate." },
 ];
 
@@ -48,7 +48,7 @@ export default function Proof() {
         <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 28 }}>
           <div style={{ fontSize: 13, color: "var(--cyan)", fontWeight: 500, marginBottom: 4 }}>The trust funnel</div>
           <h2 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 8px" }}>Three gates, all fail-closed</h2>
-          <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "0 0 24px", lineHeight: 1.6 }}>Contributed traps clear each gate in order. Any rejection stops the record — nothing slips through silently.</p>
+          <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "0 0 24px", lineHeight: 1.6 }}>Contributed records clear each gate in order. Any rejection stops the record — nothing slips through silently.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {GATES.map((g) => (
               <div key={g.n} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>

@@ -105,7 +105,7 @@ export default async function SLA() {
         <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 18, fontWeight: 500 }}>What the SLA re-checks, every run</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
           {[
-            ["Reproduction", "Every VTI in every lot is re-proven RED→GREEN. A trap that stops reproducing means the SDK moved under it — the freshness signal shows up here first.", "var(--emerald)"],
+            ["Reproduction", "Every VTI in every lot is re-proven RED→GREEN. A record that stops reproducing means the SDK moved under it — the freshness signal shows up here first.", "var(--emerald)"],
             ["Schema", "Each record is re-validated against the committed VTI schema — a back-stop against malformed or tampered data.", "var(--cyan)"],
             ["Drift", "The published dataset is diffed against the source corpus. Any divergence between what's sold and what's proven fails the gate.", "var(--violet)"],
           ].map(([t, b, c]) => (

@@ -32,7 +32,7 @@ export default async function Coverage() {
   const sdks = d.coverage.sdks;
 
   const stats = [
-    { l: "Trap classes covered", v: `${d.totals.classes}`, sub: `of ${classesTotal}`, c: "#34d399" },
+    { l: "Error classes covered", v: `${d.totals.classes}`, sub: `of ${classesTotal}`, c: "#34d399" },
     { l: "SDKs covered", v: `${d.totals.sdks}`, sub: "and growing", c: "#22d3ee" },
     { l: "Populated cells", v: `${d.coverage.cells.length}`, sub: "class × sdk pairs", c: "#8b7bff" },
     { l: "Open classes", v: `${d.coverage.uncovered.length}`, sub: "fleet is hunting", c: "#fbbf24" },
@@ -105,7 +105,7 @@ export default async function Coverage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 26 }}>
-          <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20, fontWeight: 500 }}>Traps by class</div>
+          <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20, fontWeight: 500 }}>VTIs by class</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
             {classRows.map(([cls, n]) => (
               <div key={cls}>
@@ -131,7 +131,7 @@ export default async function Coverage() {
         </div>
 
         <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 26 }}>
-          <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20, fontWeight: 500 }}>Traps by SDK</div>
+          <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20, fontWeight: 500 }}>VTIs by SDK</div>
           <div className="scrolly" style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 340, overflowY: "auto" }}>
             {d.sdkCounts.map((s) => (
               <div key={s.sdk}>

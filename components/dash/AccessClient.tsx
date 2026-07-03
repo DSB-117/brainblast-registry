@@ -26,7 +26,7 @@ export default function AccessClient() {
     `mailto:${contact}` +
     `?subject=${encodeURIComponent(`Brainblast access — ${eligible} tier`)}` +
     `&body=${encodeURIComponent(
-      `I'd like a ${eligible} grant for the Brainblast verified-trap corpus.\n\n` +
+      `I'd like a ${eligible} grant for the Brainblast verified corpus.\n\n` +
         `Wallet address (holds ≥ ${cur.min.toLocaleString()} $BRAIN):\n` +
         `Intended use:\n`,
     )}`;
