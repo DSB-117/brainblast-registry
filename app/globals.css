@@ -1,53 +1,44 @@
-/* Brainblast registry — design system v2 (dashboard shell)
-   Dark, forensic, premium. Green = "proven/verified" is the brand's core signal;
-   every other accent is strictly semantic. */
+/* Brainblast — marketplace design system v4.
+   Premium public storefront: deep cinematic canvas, vivid gradient accents,
+   glass surfaces, real data viz. Colorful but organized. */
 
 :root {
   color-scheme: dark;
 
-  /* Canvas + surfaces — near-black with layered panels */
-  --bg: #070809;
-  --bg-grid: #0d0f13;
-  --panel: #0e1116;
-  --panel-2: #12151b;
-  --panel-hover: #161a21;
-  --raise: #191d25;
+  --bg: #07070e;
+  --bg-2: #0b0b16;
+  --panel: #101019;
+  --glass: rgba(255, 255, 255, 0.035);
+  --glass-2: rgba(255, 255, 255, 0.06);
 
-  /* Hairlines */
-  --line: #1b2029;
-  --line-soft: #14181f;
-  --line-strong: #262c37;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-2: rgba(255, 255, 255, 0.14);
 
-  /* Ink */
-  --ink: #eef3f9;
-  --ink-2: #aab4c0;
-  --ink-3: #6f7a87;
-  --ink-4: #454e5a;
+  --ink: #f6f6fb;
+  --ink-2: #b2b2c4;
+  --ink-3: #7c7c90;
+  --ink-4: #565667;
 
-  /* Brand / semantic accents */
-  --green: #24f2a8;
-  --green-dim: #0f6b4c;
-  --green-bg: rgba(36, 242, 168, 0.08);
-  --cyan: #2af0ff;
-  --cyan-bg: rgba(42, 240, 255, 0.08);
-  --blue: #4d84ff;
-  --blue-bg: rgba(77, 132, 255, 0.09);
-  --violet: #8a6bff;
-  --violet-bg: rgba(138, 107, 255, 0.1);
-  --red: #ff4d77;
-  --red-bg: rgba(255, 77, 119, 0.1);
-  --amber: #ffc24d;
-  --amber-bg: rgba(255, 194, 77, 0.1);
+  --emerald: #34d399;
+  --teal: #2dd4bf;
+  --cyan: #22d3ee;
+  --violet: #8b7bff;
+  --indigo: #6366f1;
+  --amber: #fbbf24;
+  --pink: #f472b6;
+  --rose: #fb7185;
 
-  --radius: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --grad-brand: linear-gradient(120deg, #34d399 0%, #2dd4bf 45%, #22d3ee 100%);
+  --grad-violet: linear-gradient(135deg, #8b7bff 0%, #6366f1 100%);
+  --grad-hero: linear-gradient(115deg, #eafff6 0%, #7ff0c8 30%, #6bd7ff 62%, #a99bff 100%);
+  --grad-mix: linear-gradient(135deg, #34d399, #22d3ee 40%, #8b7bff);
+
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
 
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: var(--font-mono-jb), "SF Mono", ui-monospace, monospace;
-
-  --sidebar-w: 244px;
-  --topbar-h: 64px;
+  --font-mono: var(--font-mono-jb), ui-monospace, "SF Mono", monospace;
 }
 
 * {
@@ -61,8 +52,9 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.55;
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -73,102 +65,72 @@ a {
 }
 
 ::selection {
-  background: rgba(36, 242, 168, 0.22);
+  background: rgba(52, 211, 153, 0.28);
 }
 
-/* Ambient page glow — subtle, top-anchored, single source */
+/* Ambient — soft, premium, tasteful (not the harsh grid). Two colored auras up top. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  pointer-events: none;
   z-index: 0;
+  pointer-events: none;
   background:
-    radial-gradient(900px 460px at 78% -8%, rgba(36, 242, 168, 0.07), transparent 60%),
-    radial-gradient(700px 400px at 8% 4%, rgba(138, 107, 255, 0.05), transparent 55%);
+    radial-gradient(760px 480px at 12% -6%, rgba(52, 211, 153, 0.14), transparent 60%),
+    radial-gradient(820px 520px at 88% -4%, rgba(139, 123, 255, 0.15), transparent 62%),
+    radial-gradient(600px 600px at 60% 100%, rgba(34, 211, 238, 0.06), transparent 60%);
 }
-
-/* Fine grid texture, masked to fade */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image:
-    linear-gradient(var(--bg-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-  background-size: 52px 52px;
-  opacity: 0.5;
-  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000, transparent 75%);
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000, transparent 75%);
-}
-
-/* ── Utility primitives ─────────────────────────────────────── */
 
 .mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
-.card {
-  background: var(--panel);
+.grad-text {
+  background: var(--grad-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass {
+  background: var(--glass);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  position: relative;
-}
-
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  color: var(--ink-2);
-  white-space: nowrap;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .scrolly {
   scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-color: var(--line-2) transparent;
 }
 .scrolly::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .scrolly::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
+  background: var(--line-2);
   border-radius: 8px;
 }
 
-@keyframes bb-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(36, 242, 168, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 5px rgba(36, 242, 168, 0);
-  }
-}
-
-@keyframes bb-fadeup {
+@keyframes fade {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
   }
 }
