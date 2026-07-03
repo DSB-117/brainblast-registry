@@ -1,7 +1,6 @@
 import Image from "next/image";
 
-// Brainblast logo — the neon brain-circuit coin. Clipped to a circle so the
-// square black corners never show against the near-black canvas.
+// Brainblast logo — the neon brain-circuit coin (transparent bevel PNG).
 export default function Logo({ size = 26 }: { size?: number }) {
   return (
     <Image
@@ -10,7 +9,7 @@ export default function Logo({ size = 26 }: { size?: number }) {
       width={size}
       height={size}
       priority
-      style={{ display: "block", flexShrink: 0, borderRadius: "50%" }}
+      style={{ display: "block", flexShrink: 0 }}
     />
   );
 }
