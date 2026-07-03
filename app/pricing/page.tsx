@@ -2,7 +2,7 @@ import Offers from "../../components/store/Offers";
 
 const ANATOMY = [
   { k: "SDK + exact version", v: "Pinned to the release the bug lives in — e.g. @solana/web3.js 1.95.3.", c: "var(--cyan)" },
-  { k: "The failing code (RED)", v: "A minimal repro of the footgun — compiles, runs, and fails the way the SDK trips real code.", c: "var(--rose)" },
+  { k: "The failing code (RED)", v: "A minimal repro of the bug — compiles, runs, and fails the way the SDK trips up real code.", c: "var(--rose)" },
   { k: "The fix (GREEN)", v: "The corrected code that does the same job the right way.", c: "var(--emerald)" },
   { k: "The test", v: "One test that proves RED fails and GREEN passes — the diff is the lesson.", c: "var(--violet)" },
   { k: "Oracle receipt", v: "A machine re-verification anyone can replay. No trust, no answer key.", c: "var(--amber)" },
@@ -23,7 +23,7 @@ const FAQ = [
   },
   {
     q: "Do I need $BRAIN or a wallet to buy?",
-    a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount. Whatever you pay, we route value to the contributors whose traps you use.",
+    a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount. Whatever you pay, we route value to the contributors whose records you use.",
   },
 ];
 
@@ -43,7 +43,7 @@ export default function Pricing() {
         <div>
           <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--ink-4)", marginBottom: 12 }}>What you're buying</div>
           <h2 style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 14px", lineHeight: 1.2 }}>
-            One <span className="grad-text">VTI</span> = one proven SDK footgun
+            One <span className="grad-text">VTI</span> = one proven SDK bug
           </h2>
           <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.65, margin: 0 }}>
             A Verified Trap Instance is a single, machine-checked record of a way an SDK trips up code — captured as failing code, the fix, and a test that proves the difference. The corpus is a growing library of them. Everything below is a way to <span style={{ color: "var(--ink)" }}>use</span> that library.
@@ -73,7 +73,7 @@ export default function Pricing() {
             <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Pay in $BRAIN for 10% off</h3>
           </div>
           <p style={{ fontSize: 13.5, color: "var(--ink-2)", margin: 0, lineHeight: 1.6 }}>
-            USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount. USDC we accept at full price is programmatically bought back into $BRAIN and routed to the contributors whose traps you&apos;re using. You never have to hold a token to buy.
+            USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount. USDC we accept at full price is programmatically bought back into $BRAIN and routed to the contributors whose records you&apos;re using. You never have to hold a token to buy.
           </p>
         </div>
 

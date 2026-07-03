@@ -30,7 +30,7 @@ export default async function Home() {
             The open corpus of<br /><span className="grad-text">machine-verified</span> AI training data
           </h1>
           <p style={{ fontSize: 17, color: "var(--ink-2)", lineHeight: 1.6, margin: "22px 0 32px", maxWidth: 480 }}>
-            Verified Trap Instances — proven error→fix→test records of the SDK footguns AI ships, pinned to exact versions and re-provable on demand. Browse it free; train on it, or evaluate your model against it.
+            Verified Trap Instances — proven error→fix→test records of the SDK errors AI ships, pinned to exact versions and re-provable on demand. Browse it free; train on it, or evaluate your model against it.
           </p>
           <div style={{ display: "flex", gap: 12 }}>
             <Link href="/browse" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 24px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 15, fontWeight: 600, boxShadow: "0 10px 34px -10px rgba(52,211,153,0.7)" }}>
@@ -55,10 +55,10 @@ export default async function Home() {
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 28px 8px" }}>
         <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "22px 28px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
           {[
-            ["Pinned to versions", "Every trap is bound to an exact SDK release."],
+            ["Pinned to versions", "Every record is bound to an exact SDK release."],
             ["RED→GREEN proven", "The vulnerable code fails; the fix passes. Both on record."],
             ["Re-provable by anyone", "No secret answer key — verify it yourself."],
-            ["A fresh delta", "New verified traps stream in continuously."],
+            ["A fresh delta", "New verified records stream in continuously."],
           ].map(([h, s], i) => (
             <div key={i} style={{ padding: "0 16px", borderLeft: i === 0 ? "none" : "1px solid var(--line)" }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 5 }}>{h}</div>
@@ -88,7 +88,7 @@ export default async function Home() {
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 26 }}>
           <div>
             <div style={{ fontSize: 13, color: "var(--violet)", fontWeight: 500, marginBottom: 10 }}>In the marketplace</div>
-            <h2 style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Latest verified traps</h2>
+            <h2 style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Latest verified records</h2>
           </div>
           <Link href="/browse" style={{ fontSize: 14, color: "var(--ink-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
             Browse all {d.totals.vtis} VTIs

@@ -10,7 +10,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-jb", di
 export const metadata = {
   title: "Brainblast — The verified AI-training-data marketplace",
   description:
-    "Subscribe to machine-verified Verified Trap Instances: proven error→fix→test records of real SDK footguns, pinned to exact versions and re-provable on demand.",
+    "Subscribe to machine-verified Verified Trap Instances: proven error→fix→test records of real SDK bugs, pinned to exact versions and re-provable on demand.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

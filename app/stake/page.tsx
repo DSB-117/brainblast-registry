@@ -81,7 +81,7 @@ function inferCategory(pack_id: string): string {
 const STEPS = [
   ["Register", "Connect a wallet, pick your pack and rule ID, and submit. You get a memo code and a USD-denominated stake amount — no account, no approval."],
   ["Stake", "Pay in SOL, USDC, or $BRAIN (10% off), converted from USD at live prices. $5 is the suggested minimum — enough to cover indexer/gas and show you'll maintain the rule."],
-  ["Graduate", "When brainblast confirms your rule's RED→GREEN fix across 5 distinct repos within 90 days, it graduates — the corroboration that makes a trap worth a buyer's money."],
+  ["Graduate", "When brainblast confirms your rule's RED→GREEN fix across 5 distinct repos within 90 days, it graduates — the corroboration that makes a rule worth a buyer's money."],
   ["Earn or reclaim", "Graduated stakes feed the $BRAIN bounty pool that pays you as the author. A rejected submission can always reclaim its stake."],
 ];
 
@@ -121,7 +121,7 @@ export default async function StakePage() {
         <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 12 }}>Contribute · Stake</div>
         <h1 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Stake behind your rules</h1>
         <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px 0 0", maxWidth: 660, lineHeight: 1.6 }}>
-          Author a rule that catches an SDK footgun, stake behind it, and earn from the $BRAIN bounty pool when it graduates across real repos. Graduated rules become VTIs in the corpus buyers train and evaluate on. New here? <a href="/earn" style={{ color: "var(--emerald)" }}>Read the contributor guide →</a>
+          Author a rule that catches an SDK bug, stake behind it, and earn from the $BRAIN bounty pool when it graduates across real repos. Graduated rules become VTIs in the corpus buyers train and evaluate on. New here? <a href="/earn" style={{ color: "var(--emerald)" }}>Read the contributor guide →</a>
         </p>
       </div>
 
