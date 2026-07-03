@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loadDashboard } from "../lib/dashboardData";
+import HeroViz from "../components/store/HeroViz";
 
 export const revalidate = 300;
 
@@ -10,28 +11,9 @@ const SEV = {
   low: { c: "var(--ink-3)", bg: "rgba(255,255,255,0.06)" },
 } as const;
 
-// Smooth area-chart path from a normalized series.
-function areaPath(series: number[], w: number, h: number, pad = 6) {
-  const max = Math.max(...series);
-  const min = Math.min(...series);
-  const rng = max - min || 1;
-  const step = (w - pad * 2) / (series.length - 1);
-  const pts = series.map((v, i) => [pad + i * step, h - pad - ((v - min) / rng) * (h - pad * 2)]);
-  let line = `M ${pts[0][0]} ${pts[0][1]}`;
-  for (let i = 1; i < pts.length; i++) {
-    const [x0, y0] = pts[i - 1];
-    const [x1, y1] = pts[i];
-    const cx = (x0 + x1) / 2;
-    line += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
-  }
-  const area = `${line} L ${pts[pts.length - 1][0]} ${h} L ${pts[0][0]} ${h} Z`;
-  return { line, area, last: pts[pts.length - 1] };
-}
-
 export default async function Home() {
   const d = await loadDashboard();
   const growth = [2, 3, 5, 6, 8, 9, 12, 13, 15].map((n) => Math.round((n / 15) * d.totals.vtis));
-  const chart = areaPath(growth, 340, 128);
   const classesTotal = d.totals.classes + d.coverage.uncovered.length;
 
   const streams = [
@@ -65,45 +47,13 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Hero viz card */}
-        <div className="glass" style={{ borderRadius: "var(--radius-xl)", padding: 26, boxShadow: "0 30px 80px -30px rgba(0,0,0,0.7)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-            <div>
-              <div style={{ fontSize: 12.5, color: "var(--ink-3)", letterSpacing: "0.02em", marginBottom: 8 }}>Verified Trap Instances</div>
-              <div className="mono" style={{ fontSize: 46, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1 }}>{d.totals.vtis}</div>
-            </div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 999, background: "rgba(52,211,153,0.14)", color: "var(--emerald)", fontSize: 12.5, fontWeight: 500 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M7 17L17 7M17 7H9M17 7v8" /></svg>
-              growing
-            </div>
-          </div>
-
-          <svg width="100%" viewBox="0 0 340 132" style={{ display: "block", margin: "8px 0 18px" }} aria-hidden="true">
-            <defs>
-              <linearGradient id="afill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#34d399" stopOpacity="0.42" />
-                <stop offset="1" stopColor="#34d399" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="aline" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#34d399" />
-                <stop offset="1" stopColor="#22d3ee" />
-              </linearGradient>
-            </defs>
-            <path d={chart.area} fill="url(#afill)" />
-            <path d={chart.line} fill="none" stroke="url(#aline)" strokeWidth="2.5" strokeLinecap="round" />
-            <circle cx={chart.last[0]} cy={chart.last[1]} r="4" fill="#34d399" />
-            <circle cx={chart.last[0]} cy={chart.last[1]} r="8" fill="#34d399" opacity="0.25" />
-          </svg>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
-            {[["SDKs", d.totals.sdks, "var(--cyan)"], ["Classes", `${d.totals.classes}/${classesTotal}`, "var(--violet)"], ["Reproduced", `${d.totals.reproductionPct}%`, "var(--emerald)"]].map(([l, v, c]) => (
-              <div key={l as string}>
-                <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 5 }}>{l}</div>
-                <div className="mono" style={{ fontSize: 19, fontWeight: 600, color: c as string }}>{v}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <HeroViz
+          vtis={d.totals.vtis}
+          sdks={d.totals.sdks}
+          classesLabel={`${d.totals.classes}/${classesTotal}`}
+          reproductionPct={d.totals.reproductionPct}
+          growth={growth}
+        />
       </section>
 
       {/* TRUST STRIP */}
@@ -126,7 +76,12 @@ export default async function Home() {
       {/* DATA STREAMS — subscribe */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 28px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 12, letterSpacing: "0.02em" }}>Subscribe to a data stream</div>
+          <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 14, letterSpacing: "0.02em" }}>Subscribe to a data stream</div>
+          <svg width="150" height="10" viewBox="0 0 150 10" style={{ display: "block", margin: "0 auto 14px" }} aria-hidden="true">
+            <line x1="2" y1="5" x2="148" y2="5" stroke="var(--line-2)" strokeWidth="1.5" />
+            <line className="stream-line" x1="2" y1="5" x2="148" y2="5" stroke="url(#streamgrad)" strokeWidth="1.5" strokeLinecap="round" />
+            <defs><linearGradient id="streamgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#34d399" /><stop offset="1" stopColor="#8b7bff" /></linearGradient></defs>
+          </svg>
           <h2 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Plug the verified delta into your loop</h2>
           <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px auto 0", maxWidth: 520 }}>Browse the catalog free. Subscribe to unlock the full fixtures and the live stream, settled in USD or $BRAIN.</p>
         </div>
@@ -135,7 +90,7 @@ export default async function Home() {
           {streams.map((s) => (
             <div
               key={s.name}
-              className="glass"
+              className={`glass lift ${s.featured ? "lift-emerald" : ""}`}
               style={{
                 borderRadius: "var(--radius-lg)",
                 padding: 26,
@@ -202,7 +157,7 @@ export default async function Home() {
           {d.ledger.slice(0, 6).map((r) => {
             const sev = SEV[r.severity];
             return (
-              <Link key={r.trapId} href="/browse" className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 20, display: "block", transition: "border-color 0.15s" }}>
+              <Link key={r.trapId} href="/browse" className="glass lift" style={{ borderRadius: "var(--radius-lg)", padding: 20, display: "block" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 500, padding: "3px 9px", borderRadius: 999, color: sev.c, background: sev.bg, textTransform: "capitalize" }}>{r.severity}</span>
                   <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)" }}>{r.proofMethod === "static-checker" ? "static" : r.proofMethod}</span>
