@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "./Logo";
 
 export default function Footer() {
   return (
@@ -6,7 +7,7 @@ export default function Footer() {
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "44px 28px", display: "flex", flexWrap: "wrap", gap: 40, justifyContent: "space-between" }}>
         <div style={{ maxWidth: 300 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <span style={{ width: 22, height: 22, borderRadius: 7, background: "var(--grad-brand)" }} />
+            <Logo size={24} />
             <span style={{ fontSize: 15, fontWeight: 600 }}>brainblast</span>
           </div>
           <p style={{ fontSize: 13.5, color: "var(--ink-3)", lineHeight: 1.6 }}>
