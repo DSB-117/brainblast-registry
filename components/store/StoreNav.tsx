@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Logo from "./Logo";
 
 const LINKS = [
   { href: "/browse", label: "Marketplace" },
@@ -27,7 +28,7 @@ export default function StoreNav() {
     >
       <div style={{ maxWidth: 1200, margin: "0 auto", height: 64, display: "flex", alignItems: "center", gap: 32, padding: "0 28px" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 24, height: 24, borderRadius: 7, background: "var(--grad-brand)", boxShadow: "0 0 18px rgba(52,211,153,0.4)" }} />
+          <Logo size={28} />
           <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.02em" }}>brainblast</span>
         </Link>
 
@@ -42,9 +43,8 @@ export default function StoreNav() {
           })}
         </nav>
 
-        <Link href="/access" style={{ fontSize: 14, color: "var(--ink-2)" }}>Sign in</Link>
         <Link
-          href="/access"
+          href="/pricing"
           style={{
             display: "inline-flex",
             alignItems: "center",

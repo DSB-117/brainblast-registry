@@ -27,7 +27,7 @@ export default async function Home() {
             Live corpus · {d.totals.reproductionPct}% reproduced
           </div>
           <h1 style={{ fontSize: 52, lineHeight: 1.05, fontWeight: 600, letterSpacing: "-0.035em", margin: 0 }}>
-            The open corpus of<br /><span className="grad-text">machine-verified</span> code traps
+            The open corpus of<br /><span className="grad-text">machine-verified</span> AI training data
           </h1>
           <p style={{ fontSize: 17, color: "var(--ink-2)", lineHeight: 1.6, margin: "22px 0 32px", maxWidth: 480 }}>
             Verified Trap Instances — proven error→fix→test records of the SDK footguns AI ships, pinned to exact versions and re-provable on demand. Browse it free; train on it, or evaluate your model against it.

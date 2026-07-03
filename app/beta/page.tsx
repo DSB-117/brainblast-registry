@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Logo from "../../components/store/Logo";
 
 export default function Beta() {
   const [key, setKey] = useState("");
@@ -19,7 +20,7 @@ export default function Beta() {
   return (
     <div style={{ minHeight: "calc(100vh - 64px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
       <div className="glass" style={{ width: "100%", maxWidth: 420, borderRadius: "var(--radius-xl)", padding: 36, textAlign: "center", animation: "fade 0.4s ease" }}>
-        <div style={{ width: 40, height: 40, borderRadius: 11, background: "var(--grad-brand)", margin: "0 auto 22px", boxShadow: "0 0 24px rgba(52,211,153,0.4)" }} />
+        <div style={{ margin: "0 auto 22px", width: "fit-content" }}><Logo size={48} /></div>
         <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 10 }}>Private beta</div>
         <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 10px" }}>Enter your invite</h1>
         <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "0 0 26px", lineHeight: 1.55 }}>
