@@ -22,12 +22,16 @@ public catalog, the free sample feed, and CLI testing keep working.
 
 | Var | |
 |---|---|
-| `SITE_GATE_PASSWORD` | Set it → the site is gated. **Delete it → the site is fully public.** No redeploy needed; the change takes effect on the next request. |
+| `SITE_GATE_PASSWORD` | Set it → the site is gated. **Delete it → the site is fully public.** |
 | `SITE_GATE_USER` | Optional username (default `preview`). |
 
 Share the `user:password` with whoever should get in. At launch, remove
-`SITE_GATE_PASSWORD` and the storefront is public. (Implemented in
-`middleware.ts`.)
+`SITE_GATE_PASSWORD` and redeploy → the storefront is public.
+
+> Note: Vercel env-var changes take effect on the **next deployment**, not
+> instantly. So to flip the gate on or off, change the var and hit **Redeploy**
+> (Deployments → ⋯ → Redeploy — one click, ~1 min). Implemented in
+> `middleware.ts`.
 
 ---
 
