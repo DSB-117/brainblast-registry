@@ -13,6 +13,24 @@ Secrets are only for the API surface.
 
 ---
 
+## Private preview gate (optional — go live but keep it private)
+
+To deploy the site but keep the human-facing pages behind a password (soft
+launch / private preview), set **`SITE_GATE_PASSWORD`** in Vercel env. Every
+page then prompts for HTTP Basic Auth; the `/api/*` routes stay open so the
+public catalog, the free sample feed, and CLI testing keep working.
+
+| Var | |
+|---|---|
+| `SITE_GATE_PASSWORD` | Set it → the site is gated. **Delete it → the site is fully public.** No redeploy needed; the change takes effect on the next request. |
+| `SITE_GATE_USER` | Optional username (default `preview`). |
+
+Share the `user:password` with whoever should get in. At launch, remove
+`SITE_GATE_PASSWORD` and the storefront is public. (Implemented in
+`middleware.ts`.)
+
+---
+
 ## 1. Environment variables (Vercel → Project → Settings → Environment Variables)
 
 ### Required for the marketplace API
