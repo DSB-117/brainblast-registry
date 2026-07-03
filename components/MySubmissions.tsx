@@ -69,7 +69,7 @@ export default function MySubmissions() {
 
   return (
     <div className="card glass sidebar-card">
-      <p className="sidebar-card-title">Packs you've submitted</p>
+      <p className="sidebar-card-title">Rules you've submitted</p>
 
       {submissions === null && <p className="muted">Loading…</p>}
       {submissions?.length === 0 && <p className="muted">No submissions yet.</p>}
