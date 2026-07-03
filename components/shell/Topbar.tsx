@@ -23,7 +23,8 @@ export default function Topbar() {
           display: "flex",
           alignItems: "center",
           gap: 9,
-          flex: 1,
+          flex: "1 1 0",
+          minWidth: 0,
           maxWidth: 420,
           height: 38,
           padding: "0 13px",
@@ -47,6 +48,7 @@ export default function Topbar() {
             fontSize: 13,
             fontFamily: "var(--font-sans)",
             flex: 1,
+            minWidth: 0,
           }}
         />
         <kbd className="mono" style={{ fontSize: 10, color: "var(--ink-4)", border: "1px solid var(--line-strong)", borderRadius: 5, padding: "1px 5px" }}>/</kbd>
