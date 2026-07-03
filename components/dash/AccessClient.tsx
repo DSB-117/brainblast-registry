@@ -21,15 +21,25 @@ export default function AccessClient() {
   const next = TIERS.find((t) => t.min > brain);
   const brainPrice = cur.priceUsd ? Math.round(cur.priceUsd * 0.9) : null;
 
+  const contact = process.env.NEXT_PUBLIC_ACCESS_EMAIL || "access@brainblast.tech";
+  const requestHref =
+    `mailto:${contact}` +
+    `?subject=${encodeURIComponent(`Brainblast access — ${eligible} tier`)}` +
+    `&body=${encodeURIComponent(
+      `I'd like a ${eligible} grant for the Brainblast verified-trap corpus.\n\n` +
+        `Wallet address (holds ≥ ${cur.min.toLocaleString()} $BRAIN):\n` +
+        `Intended use:\n`,
+    )}`;
+
   return (
     <div className="card" style={{ padding: 24, animation: "bb-fadeup 0.4s ease" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div className="eyebrow" style={{ color: "var(--green)" }}>Self-serve access</div>
-        <span className="chip" style={{ borderColor: "var(--line-strong)" }}>no human in the loop</span>
+        <div className="eyebrow" style={{ color: "var(--green)" }}>Access</div>
+        <span className="chip" style={{ borderColor: "var(--line-strong)" }}>grant issued in ~1 day</span>
       </div>
       <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 4px" }}>Check your tier</h2>
       <p style={{ fontSize: 13, color: "var(--ink-2)", margin: "0 0 22px", maxWidth: 480 }}>
-        Prove the $BRAIN you hold and a grant is issued automatically — a signed access credential, no signup, no issuer.
+        Prove the $BRAIN you hold and we issue your signed access grant — no subscription, no lock-in. Fully self-serve issuance is rolling out.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}>
@@ -122,7 +132,8 @@ export default function AccessClient() {
             </div>
           </div>
 
-          <button
+          <a
+            href={cur.priceUsd ? requestHref : "/browse"}
             style={{
               width: "100%",
               display: "inline-flex",
@@ -140,9 +151,16 @@ export default function AccessClient() {
               fontFamily: "var(--font-sans)",
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="3" /><path d="M2 10h20" /></svg>
-            {cur.priceUsd ? "Connect wallet to issue grant" : "Start with the free tier"}
-          </button>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {cur.priceUsd ? <><path d="M4 4h16v12H4zM4 8l8 5 8-5" /></> : <><rect x="2" y="6" width="20" height="13" rx="3" /><path d="M2 10h20" /></>}
+            </svg>
+            {cur.priceUsd ? `Request ${eligible} access` : "Browse the free tier"}
+          </a>
+          {cur.priceUsd && (
+            <p className="mono" style={{ fontSize: 10, color: "var(--ink-4)", margin: "10px 0 0", textAlign: "center", lineHeight: 1.5 }}>
+              Prove your $BRAIN and we issue your signed grant within a day. Self-serve on-chain settlement is rolling out.
+            </p>
+          )}
         </div>
       </div>
     </div>
