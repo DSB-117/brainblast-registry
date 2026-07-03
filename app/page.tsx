@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { loadDashboard } from "../lib/dashboardData";
 import HeroViz from "../components/store/HeroViz";
+import Offers from "../components/store/Offers";
 
 export const revalidate = 300;
 
@@ -16,12 +17,6 @@ export default async function Home() {
   const growth = [2, 3, 5, 6, 8, 9, 12, 13, 15].map((n) => Math.round((n / 15) * d.totals.vtis));
   const classesTotal = d.totals.classes + d.coverage.uncovered.length;
 
-  const streams = [
-    { name: "Sample", price: "Free", per: "", tag: "Open", records: "5 records", feat: ["Metadata + proof receipts", "Public and anonymous", "No wallet required"], featured: false, grad: "linear-gradient(135deg,#2dd4bf,#22d3ee)" },
-    { name: "Standard", price: "$2,500", per: "/mo", tag: "Most popular", records: "100 records", feat: ["Full vulnerable + fixed fixtures", "24-hour freshness delta", "Reproducibility receipts"], featured: true, grad: "var(--grad-brand)" },
-    { name: "Firehose", price: "$10,000", per: "/mo", tag: "Full stream", records: "Unlimited", feat: ["Zero freshness holdback", "The complete live delta", "Priority scout influence"], featured: false, grad: "var(--grad-violet)" },
-  ];
-
   return (
     <div style={{ animation: "fade 0.5s ease" }}>
       {/* HERO */}
@@ -32,10 +27,10 @@ export default async function Home() {
             Live corpus · {d.totals.reproductionPct}% reproduced
           </div>
           <h1 style={{ fontSize: 52, lineHeight: 1.05, fontWeight: 600, letterSpacing: "-0.035em", margin: 0 }}>
-            The marketplace for<br /><span className="grad-text">machine-verified</span> training data
+            The open corpus of<br /><span className="grad-text">machine-verified</span> code traps
           </h1>
           <p style={{ fontSize: 17, color: "var(--ink-2)", lineHeight: 1.6, margin: "22px 0 32px", maxWidth: 480 }}>
-            Subscribe to a live stream of Verified Trap Instances — proven error→fix→test records of the SDK footguns AI ships. Pinned to exact versions, re-provable on demand.
+            Verified Trap Instances — proven error→fix→test records of the SDK footguns AI ships, pinned to exact versions and re-provable on demand. Browse it free; train on it, or evaluate your model against it.
           </p>
           <div style={{ display: "flex", gap: 12 }}>
             <Link href="/browse" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 24px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 15, fontWeight: 600, boxShadow: "0 10px 34px -10px rgba(52,211,153,0.7)" }}>
@@ -73,71 +68,19 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* DATA STREAMS — subscribe */}
+      {/* THREE WAYS IN */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 28px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 14, letterSpacing: "0.02em" }}>Subscribe to a data stream</div>
+          <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 14, letterSpacing: "0.02em" }}>Three ways in</div>
           <svg width="150" height="10" viewBox="0 0 150 10" style={{ display: "block", margin: "0 auto 14px" }} aria-hidden="true">
             <line x1="2" y1="5" x2="148" y2="5" stroke="var(--line-2)" strokeWidth="1.5" />
             <line className="stream-line" x1="2" y1="5" x2="148" y2="5" stroke="url(#streamgrad)" strokeWidth="1.5" strokeLinecap="round" />
             <defs><linearGradient id="streamgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#34d399" /><stop offset="1" stopColor="#8b7bff" /></linearGradient></defs>
           </svg>
-          <h2 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Plug the verified delta into your loop</h2>
-          <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px auto 0", maxWidth: 520 }}>Browse the catalog free. Subscribe to unlock the full fixtures and the live stream, settled in USD or $BRAIN.</p>
+          <h2 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Browse it free. Train on it. Evaluate against it.</h2>
+          <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px auto 0", maxWidth: 540 }}>The corpus is open. We charge for the two things that scale with it — certifying your models, and pointing the fleet at your stack.</p>
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 18 }}>
-          {streams.map((s) => (
-            <div
-              key={s.name}
-              className={`glass lift ${s.featured ? "lift-emerald" : ""}`}
-              style={{
-                borderRadius: "var(--radius-lg)",
-                padding: 26,
-                position: "relative",
-                border: s.featured ? "1px solid rgba(52,211,153,0.45)" : "1px solid var(--line)",
-                boxShadow: s.featured ? "0 24px 70px -30px rgba(52,211,153,0.5)" : "none",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                <span style={{ fontSize: 16, fontWeight: 600 }}>{s.name}</span>
-                <span style={{ fontSize: 11.5, fontWeight: 500, padding: "4px 10px", borderRadius: 999, color: s.featured ? "#03130c" : "var(--ink-2)", background: s.featured ? "var(--grad-brand)" : "var(--glass-2)" }}>{s.tag}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-                <span className="mono" style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>{s.price}</span>
-                <span style={{ fontSize: 14, color: "var(--ink-3)" }}>{s.per}</span>
-              </div>
-              <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20 }}>{s.records} · {s.name === "Sample" ? "receipts only" : "full fixtures"}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 24 }}>
-                {s.feat.map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, color: "var(--ink-2)" }}>
-                    <span style={{ width: 18, height: 18, borderRadius: "50%", background: s.grad, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#03130c" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
-                    </span>
-                    {f}
-                  </div>
-                ))}
-              </div>
-              <Link
-                href={s.name === "Sample" ? "/browse" : "/access"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: 44,
-                  borderRadius: 11,
-                  fontSize: 14.5,
-                  fontWeight: 600,
-                  background: s.featured ? "var(--grad-brand)" : "var(--glass-2)",
-                  color: s.featured ? "#03130c" : "var(--ink)",
-                  border: s.featured ? "none" : "1px solid var(--line-2)",
-                }}
-              >
-                {s.name === "Sample" ? "Start browsing" : `Subscribe to ${s.name}`}
-              </Link>
-            </div>
-          ))}
-        </div>
+        <Offers />
       </section>
 
       {/* FEATURED CATALOG */}
