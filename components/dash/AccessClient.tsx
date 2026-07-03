@@ -4,18 +4,18 @@ import { useState } from "react";
 
 const TIERS = [
   { tier: "sample", min: 0, priceUsd: null as number | null, records: "5", fixtures: false, holdback: "7 days", color: "var(--ink-2)" },
-  { tier: "standard", min: 1000, priceUsd: 2500, records: "100", fixtures: true, holdback: "24 hours", color: "var(--green)" },
-  { tier: "firehose", min: 10000, priceUsd: 10000, records: "unlimited", fixtures: true, holdback: "none", color: "var(--violet)" },
+  { tier: "standard", min: 100_000, priceUsd: 2500, records: "100", fixtures: true, holdback: "24 hours", color: "var(--green)" },
+  { tier: "firehose", min: 1_000_000, priceUsd: 10000, records: "unlimited", fixtures: true, holdback: "none", color: "var(--violet)" },
 ];
 
 function tierForBrain(b: number) {
-  if (b >= 10000) return "firehose";
-  if (b >= 1000) return "standard";
+  if (b >= 1_000_000) return "firehose";
+  if (b >= 100_000) return "standard";
   return "sample";
 }
 
 export default function AccessClient() {
-  const [brain, setBrain] = useState(1500);
+  const [brain, setBrain] = useState(150_000);
   const eligible = tierForBrain(brain);
   const cur = TIERS.find((t) => t.tier === eligible)!;
   const next = TIERS.find((t) => t.min > brain);
@@ -41,16 +41,16 @@ export default function AccessClient() {
           <input
             type="range"
             min={0}
-            max={15000}
-            step={100}
+            max={1_500_000}
+            step={10_000}
             value={brain}
             onChange={(e) => setBrain(+e.target.value)}
             style={{ width: "100%", accentColor: "var(--green)" }}
           />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
             <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>0</span>
-            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>1k · standard</span>
-            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>10k · firehose</span>
+            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>100k · standard</span>
+            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>1M · firehose</span>
           </div>
 
           <div style={{ marginTop: 26, display: "flex", flexDirection: "column", gap: 8 }}>
