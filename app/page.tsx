@@ -1,143 +1,117 @@
+import Link from "next/link";
 import { loadDashboard } from "../lib/dashboardData";
-import ProofWidget from "../components/dash/ProofWidget";
-import CoverageMatrix from "../components/dash/CoverageMatrix";
+import HeroViz from "../components/store/HeroViz";
+import Offers from "../components/store/Offers";
 
 export const revalidate = 300;
 
-const SEV_COLOR: Record<string, string> = { critical: "var(--red)", high: "var(--amber)", medium: "var(--blue)", low: "var(--ink-3)" };
-const PROOF_COLOR: Record<string, string> = { "static-checker": "var(--green)", behavioral: "var(--cyan)", compiler: "var(--blue)" };
+const SEV = {
+  critical: { c: "var(--rose)", bg: "rgba(251,113,133,0.14)" },
+  high: { c: "var(--amber)", bg: "rgba(251,191,36,0.14)" },
+  medium: { c: "var(--cyan)", bg: "rgba(34,211,238,0.14)" },
+  low: { c: "var(--ink-3)", bg: "rgba(255,255,255,0.06)" },
+} as const;
 
-function ago(iso: string | null): string {
-  if (!iso) return "—";
-  const d = (Date.now() - Date.parse(iso)) / 86_400_000;
-  if (d < 1) return "today";
-  if (d < 2) return "1d ago";
-  return `${Math.round(d)}d ago`;
-}
+export default async function Home() {
+  const d = await loadDashboard();
+  const growth = [2, 3, 5, 6, 8, 9, 12, 13, 15].map((n) => Math.round((n / 15) * d.totals.vtis));
+  const classesTotal = d.totals.classes + d.coverage.uncovered.length;
 
-function StatCard({ label, value, unit, accent, spark }: { label: string; value: string; unit?: string; accent: string; spark?: number[] }) {
-  const max = spark ? Math.max(...spark, 1) : 1;
   return (
-    <div className="card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, minHeight: 108 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span className="eyebrow" style={{ fontSize: 9.5 }}>{label}</span>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent, boxShadow: `0 0 8px ${accent}` }} />
-      </div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
-        <span className="mono" style={{ fontSize: 30, fontWeight: 600, lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</span>
-        {unit && <span className="mono" style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 3 }}>{unit}</span>}
-      </div>
-      {spark && (
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 22, marginTop: "auto" }}>
-          {spark.map((v, i) => (
-            <div key={i} style={{ flex: 1, height: `${Math.max(12, (v / max) * 100)}%`, background: accent, opacity: 0.28 + (i / spark.length) * 0.72, borderRadius: 2 }} />
+    <div style={{ animation: "fade 0.5s ease" }}>
+      {/* HERO */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 28px 40px", display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 56, alignItems: "center" }}>
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 999, border: "1px solid var(--line)", background: "var(--glass)", fontSize: 12.5, color: "var(--ink-2)", marginBottom: 26 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--emerald)", boxShadow: "0 0 8px var(--emerald)" }} />
+            Live corpus · {d.totals.reproductionPct}% reproduced
+          </div>
+          <h1 style={{ fontSize: 52, lineHeight: 1.05, fontWeight: 600, letterSpacing: "-0.035em", margin: 0 }}>
+            The open corpus of<br /><span className="grad-text">machine-verified</span> code traps
+          </h1>
+          <p style={{ fontSize: 17, color: "var(--ink-2)", lineHeight: 1.6, margin: "22px 0 32px", maxWidth: 480 }}>
+            Verified Trap Instances — proven error→fix→test records of the SDK footguns AI ships, pinned to exact versions and re-provable on demand. Browse it free; train on it, or evaluate your model against it.
+          </p>
+          <div style={{ display: "flex", gap: 12 }}>
+            <Link href="/browse" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 24px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 15, fontWeight: 600, boxShadow: "0 10px 34px -10px rgba(52,211,153,0.7)" }}>
+              Browse the marketplace
+            </Link>
+            <Link href="/pricing" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, border: "1px solid var(--line-2)", background: "var(--glass)", color: "var(--ink)", fontSize: 15, fontWeight: 500 }}>
+              View pricing
+            </Link>
+          </div>
+        </div>
+
+        <HeroViz
+          vtis={d.totals.vtis}
+          sdks={d.totals.sdks}
+          classesLabel={`${d.totals.classes}/${classesTotal}`}
+          reproductionPct={d.totals.reproductionPct}
+          growth={growth}
+        />
+      </section>
+
+      {/* TRUST STRIP */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 28px 8px" }}>
+        <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "22px 28px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+          {[
+            ["Pinned to versions", "Every trap is bound to an exact SDK release."],
+            ["RED→GREEN proven", "The vulnerable code fails; the fix passes. Both on record."],
+            ["Re-provable by anyone", "No secret answer key — verify it yourself."],
+            ["A fresh delta", "New verified traps stream in continuously."],
+          ].map(([h, s], i) => (
+            <div key={i} style={{ padding: "0 16px", borderLeft: i === 0 ? "none" : "1px solid var(--line)" }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 5 }}>{h}</div>
+              <div style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.5 }}>{s}</div>
+            </div>
           ))}
         </div>
-      )}
-    </div>
-  );
-}
+      </section>
 
-export default async function Overview() {
-  const d = await loadDashboard();
-  const totalProof = d.proofMethods.reduce((a, b) => a + b.count, 0) || 1;
-  const sevTotal = d.totals.vtis || 1;
-
-  return (
-    <div style={{ animation: "bb-fadeup 0.4s ease" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <div className="eyebrow" style={{ marginBottom: 8 }}>Verified trap registry</div>
-          <h1 style={{ fontSize: 25, fontWeight: 600, letterSpacing: "-0.02em", margin: 0 }}>Corpus overview</h1>
-          <p style={{ fontSize: 13.5, color: "var(--ink-2)", margin: "7px 0 0", maxWidth: 560 }}>
-            Proven error→fix→test records of real SDK footguns — pinned to exact versions, re-provable on demand. Browse the full catalog free.
-          </p>
+      {/* THREE WAYS IN */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 28px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 14, letterSpacing: "0.02em" }}>Three ways in</div>
+          <svg width="150" height="10" viewBox="0 0 150 10" style={{ display: "block", margin: "0 auto 14px" }} aria-hidden="true">
+            <line x1="2" y1="5" x2="148" y2="5" stroke="var(--line-2)" strokeWidth="1.5" />
+            <line className="stream-line" x1="2" y1="5" x2="148" y2="5" stroke="url(#streamgrad)" strokeWidth="1.5" strokeLinecap="round" />
+            <defs><linearGradient id="streamgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#34d399" /><stop offset="1" stopColor="#8b7bff" /></linearGradient></defs>
+          </svg>
+          <h2 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Browse it free. Train on it. Evaluate against it.</h2>
+          <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px auto 0", maxWidth: 540 }}>The corpus is open. We charge for the two things that scale with it — certifying your models, and pointing the fleet at your stack.</p>
         </div>
-        <a href="/browse" style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 40, padding: "0 17px", borderRadius: 11, background: "var(--green)", color: "#04241c", fontSize: 13.5, fontWeight: 600, boxShadow: "0 0 24px -6px var(--green)" }}>
-          Browse the corpus
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </a>
-      </div>
+        <Offers />
+      </section>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 14 }}>
-        <StatCard label="Verified traps" value={String(d.totals.vtis)} accent="var(--green)" spark={[3, 5, 6, 8, 9, 12, 13, 15]} />
-        <StatCard label="SDKs covered" value={String(d.totals.sdks)} accent="var(--cyan)" spark={[2, 4, 6, 8, 9, 11, 13, 14]} />
-        <StatCard label="Trap classes" value={String(d.totals.classes)} unit={`/ ${d.totals.classes + d.coverage.uncovered.length}`} accent="var(--violet)" spark={[2, 3, 4, 5, 6, 7, 8, 8]} />
-        <StatCard label="Reproduction rate" value={`${d.totals.reproductionPct}`} unit="%" accent="var(--green)" spark={[100, 100, 100, 100, 100, 100, 100, 100]} />
-      </div>
+      {/* FEATURED CATALOG */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 28px 24px" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 26 }}>
+          <div>
+            <div style={{ fontSize: 13, color: "var(--violet)", fontWeight: 500, marginBottom: 10 }}>In the marketplace</div>
+            <h2 style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Latest verified traps</h2>
+          </div>
+          <Link href="/browse" style={{ fontSize: 14, color: "var(--ink-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            Browse all {d.totals.vtis} VTIs
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </Link>
+        </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 14, marginBottom: 14, alignItems: "stretch" }}>
-        <ProofWidget />
-
-        <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
-          <div className="eyebrow" style={{ marginBottom: 16 }}>Distribution</div>
-
-          <div style={{ marginBottom: 18 }}>
-            <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 9 }}>severity</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              {(["critical", "high", "medium", "low"] as const).filter((s) => d.severity[s] > 0).map((s) => (
-                <div key={s}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ color: "var(--ink-2)", textTransform: "capitalize" }}>{s}</span>
-                    <span className="mono" style={{ color: "var(--ink-3)" }}>{d.severity[s]}</span>
-                  </div>
-                  <div style={{ height: 7, background: "var(--panel-2)", borderRadius: 4, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${(d.severity[s] / sevTotal) * 100}%`, background: SEV_COLOR[s], borderRadius: 4 }} />
-                  </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+          {d.ledger.slice(0, 6).map((r) => {
+            const sev = SEV[r.severity];
+            return (
+              <Link key={r.trapId} href="/browse" className="glass lift" style={{ borderRadius: "var(--radius-lg)", padding: 20, display: "block" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 500, padding: "3px 9px", borderRadius: 999, color: sev.c, background: sev.bg, textTransform: "capitalize" }}>{r.severity}</span>
+                  <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)" }}>{r.proofMethod === "static-checker" ? "static" : r.proofMethod}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: "auto" }}>
-            <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 10 }}>proof method</div>
-            <div style={{ display: "flex", height: 9, borderRadius: 5, overflow: "hidden", marginBottom: 12 }}>
-              {d.proofMethods.map((p) => (
-                <div key={p.method} title={`${p.method}: ${p.count}`} style={{ width: `${(p.count / totalProof) * 100}%`, background: PROOF_COLOR[p.method] ?? "var(--ink-3)" }} />
-              ))}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {d.proofMethods.map((p) => (
-                <div key={p.method} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: PROOF_COLOR[p.method] ?? "var(--ink-3)" }} />
-                  <span style={{ color: "var(--ink-2)", flex: 1 }}>{p.method}</span>
-                  <span className="mono" style={{ color: "var(--ink-3)" }}>{p.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+                <div className="mono" style={{ fontSize: 14.5, fontWeight: 500, marginBottom: 8, letterSpacing: "-0.01em" }}>{r.trapId}</div>
+                <div style={{ fontSize: 13, color: "var(--ink-3)" }}>{r.sdk} · {r.class.replace(/-/g, " ")}</div>
+              </Link>
+            );
+          })}
         </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr", gap: 14, alignItems: "stretch" }}>
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-            <div className="eyebrow" style={{ color: "var(--amber)" }}>Coverage matrix · class × sdk</div>
-            <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)" }}>{d.totals.classes}/{d.totals.classes + d.coverage.uncovered.length} classes</span>
-          </div>
-          <CoverageMatrix classes={d.coverage.classes} sdks={d.coverage.sdks} cells={d.coverage.cells} uncovered={d.coverage.uncovered} />
-        </div>
-
-        <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div className="eyebrow" style={{ color: "var(--green)" }}>Recently landed</div>
-            <a href="/browse" className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>view all →</a>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {d.ledger.slice(0, 6).map((r, i) => (
-              <div key={r.trapId} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i === 0 ? "none" : "1px solid var(--line-soft)" }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: SEV_COLOR[r.severity], flexShrink: 0, boxShadow: `0 0 7px ${SEV_COLOR[r.severity]}` }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="mono" style={{ fontSize: 12, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.trapId}</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.sdk} · {r.class.replace(/-/g, " ")}</div>
-                </div>
-                <span className="mono" style={{ fontSize: 10, color: PROOF_COLOR[r.proofMethod] ?? "var(--ink-3)", background: "var(--panel-2)", padding: "2px 7px", borderRadius: 5, flexShrink: 0 }}>{r.proofMethod === "static-checker" ? "static" : r.proofMethod}</span>
-                <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)", flexShrink: 0, width: 52, textAlign: "right" }}>{ago(r.capturedAt)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

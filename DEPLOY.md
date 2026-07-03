@@ -13,6 +13,65 @@ Secrets are only for the API surface.
 
 ---
 
+## Private-beta gate (magic-link invites)
+
+Deploy the storefront but keep the human-facing pages behind per-user invites.
+Each tester gets a unique magic link; you can see who's activated and revoke
+individually — instantly, no redeploy. The `/api/*` routes and the `/beta`
+entry page are never gated. Implemented in `middleware.ts` + `app/beta/`.
+
+**a. Create the invites table** (Supabase SQL editor — "Run and enable RLS"):
+
+```sql
+create table if not exists beta_invites (
+  key text primary key,
+  label text,                       -- who it's for (email / name)
+  active boolean not null default true,
+  activated_at timestamptz,         -- set on first use
+  created_at timestamptz not null default now()
+);
+alter table beta_invites enable row level security;
+```
+
+RLS on with no policies denies anon; the server (service-role key) bypasses it.
+
+**b. Add testers** — one row each, with a random key:
+
+```sql
+insert into beta_invites (key, label) values
+  ('a1b2c3d4e5f6', 'alice@lab.com'),
+  ('0f9e8d7c6b5a', 'bob@agent.co');
+```
+
+Generate keys with `openssl rand -hex 8`.
+
+**c. Turn the gate on** — set `BETA_GATE=1` in Vercel env and redeploy. (Unset it
+to go fully public.)
+
+**d. Send each tester their magic link:**
+
+```
+https://registry.brainblast.tech/?key=<their-key>
+```
+
+Clicking it drops a cookie and lets them in; the key is stripped from the URL.
+
+**Manage the beta (all instant, no redeploy — the gate reads the DB live):**
+
+```sql
+-- revoke someone
+update beta_invites set active = false where key = 'a1b2c3d4e5f6';
+-- see who's activated
+select label, activated_at from beta_invites order by activated_at desc nulls last;
+```
+
+> Only `BETA_GATE` needs a redeploy to change (Vercel bakes env at deploy time).
+> Adding, revoking, and tracking invites is pure DB — effective immediately.
+> If the DB is briefly unreachable, the gate fails **open** (a network blip never
+> locks the beta out).
+
+---
+
 ## 1. Environment variables (Vercel → Project → Settings → Environment Variables)
 
 ### Required for the marketplace API
