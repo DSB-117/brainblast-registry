@@ -10,30 +10,40 @@ const SEV: Record<string, { c: string; bg: string }> = {
   low: { c: "#7c7c90", bg: "rgba(255,255,255,0.06)" },
 };
 const SEV_RANK: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 };
+const SEV_ORDER = ["critical", "high", "medium", "low"];
 const PROOF_COLOR: Record<string, string> = { "static-checker": "#34d399", behavioral: "#22d3ee", compiler: "#8b7bff" };
 
 function proofLabel(m: string) {
   return m === "static-checker" ? "static" : m;
 }
-function ago(iso: string | null) {
-  if (!iso) return "—";
-  const d = (Date.now() - Date.parse(iso)) / 86_400_000;
-  if (d < 1) return "today";
-  if (d < 2) return "1d";
-  return `${Math.round(d)}d`;
+function titleCase(s: string) {
+  return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 type SortKey = "captured" | "severity" | "corroboration";
+type GroupKey = "severity" | "sdk" | "class" | "none";
+
+function countBy<T>(rows: T[], key: (r: T) => string) {
+  const m = new Map<string, number>();
+  for (const r of rows) m.set(key(r), (m.get(key(r)) ?? 0) + 1);
+  return m;
+}
 
 export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdks: string[]; classes: string[] }) {
   const [q, setQ] = useState("");
   const [sev, setSev] = useState<string | null>(null);
   const [cls, setCls] = useState<string | null>(null);
   const [proof, setProof] = useState<string | null>(null);
-  const [sort, setSort] = useState<SortKey>("captured");
+  const [sort, setSort] = useState<SortKey>("severity");
+  const [group, setGroup] = useState<GroupKey>("severity");
   const [sel, setSel] = useState<LedgerRow | null>(null);
 
   const proofs = ["static-checker", "behavioral", "compiler"];
+
+  // Facet counts off the full corpus so the shape is always visible.
+  const sevCounts = useMemo(() => countBy(rows, (r) => r.severity), [rows]);
+  const clsCounts = useMemo(() => countBy(rows, (r) => r.class), [rows]);
+  const proofCounts = useMemo(() => countBy(rows, (r) => r.proofMethod), [rows]);
 
   const filtered = useMemo(() => {
     const r = rows.filter((x) => {
@@ -50,87 +60,154 @@ export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdk
     });
   }, [rows, q, sev, cls, proof, sort]);
 
-  const Chip = ({ label, active, onClick, color }: { label: string; active: boolean; onClick: () => void; color?: string }) => (
+  // Build ordered groups of the filtered rows.
+  const groups = useMemo(() => {
+    if (group === "none") return [{ key: "All VTIs", color: "var(--emerald)", rows: filtered }];
+    const keyOf = (r: LedgerRow) => (group === "severity" ? r.severity : group === "sdk" ? r.sdk : r.class);
+    const buckets = new Map<string, LedgerRow[]>();
+    for (const r of filtered) {
+      const k = keyOf(r);
+      if (!buckets.has(k)) buckets.set(k, []);
+      buckets.get(k)!.push(r);
+    }
+    let entries = [...buckets.entries()];
+    if (group === "severity") entries.sort((a, b) => SEV_RANK[b[0]] - SEV_RANK[a[0]]);
+    else entries.sort((a, b) => b[1].length - a[1].length);
+    return entries.map(([k, rs]) => ({
+      key: group === "severity" ? titleCase(k) : group === "class" ? titleCase(k) : k,
+      color: group === "severity" ? SEV[k]?.c ?? "var(--ink-3)" : "var(--emerald)",
+      rows: rs,
+    }));
+  }, [filtered, group]);
+
+  const anyFilter = sev || cls || proof || q;
+  const reset = () => { setSev(null); setCls(null); setProof(null); setQ(""); };
+
+  const FacetRow = ({ label, count, active, color, onClick }: { label: string; count: number; active: boolean; color?: string; onClick: () => void }) => (
     <button
       onClick={onClick}
-      className="mono"
       style={{
-        fontSize: 11.5,
-        padding: "6px 12px",
-        borderRadius: 999,
-        border: `1px solid ${active ? (color ?? "var(--emerald)") : "var(--line)"}`,
-        background: active ? (color ? `${color}22` : "rgba(52,211,153,0.14)") : "transparent",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+        width: "100%", padding: "7px 10px", borderRadius: 8, cursor: "pointer",
+        background: active ? (color ? `${color}1f` : "rgba(52,211,153,0.14)") : "transparent",
+        border: `1px solid ${active ? (color ?? "var(--emerald)") : "transparent"}`,
         color: active ? (color ?? "var(--emerald)") : "var(--ink-2)",
-        cursor: "pointer",
-        whiteSpace: "nowrap",
+        fontFamily: "var(--font-sans)", fontSize: 13, textAlign: "left",
       }}
     >
-      {label}
+      <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        {color && <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />}
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      </span>
+      <span className="mono" style={{ fontSize: 11.5, color: active ? "inherit" : "var(--ink-4)", flexShrink: 0 }}>{count}</span>
     </button>
   );
 
+  const FacetGroup = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ink-4)", margin: "0 0 8px 2px" }}>{title}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>{children}</div>
+    </div>
+  );
+
+  const cardCols = sel ? "repeat(2,1fr)" : "repeat(auto-fill,minmax(240px,1fr))";
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: sel ? "1fr 360px" : "1fr", gap: 18, transition: "grid-template-columns 0.2s" }}>
-      <div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 14 }}>
-          <div className="glass" style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 220, maxWidth: 320, height: 40, padding: "0 14px", borderRadius: 11 }}>
+    <div style={{ display: "grid", gridTemplateColumns: sel ? "200px 1fr 330px" : "200px 1fr", gap: 22, alignItems: "start" }}>
+      {/* Faceted sidebar */}
+      <aside style={{ position: "sticky", top: 84 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>Filters</span>
+          {anyFilter && <button onClick={reset} className="mono" style={{ fontSize: 11, color: "var(--ink-3)", background: "transparent", border: "none", cursor: "pointer" }}>reset</button>}
+        </div>
+        <FacetGroup title="Severity">
+          {SEV_ORDER.filter((s) => sevCounts.get(s)).map((s) => (
+            <FacetRow key={s} label={titleCase(s)} count={sevCounts.get(s) ?? 0} active={sev === s} color={SEV[s].c} onClick={() => setSev(sev === s ? null : s)} />
+          ))}
+        </FacetGroup>
+        <FacetGroup title="Class">
+          {classes.map((c) => (
+            <FacetRow key={c} label={titleCase(c)} count={clsCounts.get(c) ?? 0} active={cls === c} onClick={() => setCls(cls === c ? null : c)} />
+          ))}
+        </FacetGroup>
+        <FacetGroup title="Proof method">
+          {proofs.filter((p) => proofCounts.get(p)).map((p) => (
+            <FacetRow key={p} label={proofLabel(p)} count={proofCounts.get(p) ?? 0} active={proof === p} color={PROOF_COLOR[p]} onClick={() => setProof(proof === p ? null : p)} />
+          ))}
+        </FacetGroup>
+      </aside>
+
+      {/* Results */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 22 }}>
+          <div className="glass" style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 200, height: 40, padding: "0 14px", borderRadius: 11 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the catalog" style={{ border: "none", outline: "none", background: "transparent", color: "var(--ink)", fontSize: 13.5, flex: 1, minWidth: 0, fontFamily: "var(--font-sans)" }} />
           </div>
-          <div style={{ display: "flex", gap: 7 }}>
-            {(["critical", "high"] as const).map((s) => <Chip key={s} label={s} active={sev === s} onClick={() => setSev(sev === s ? null : s)} color={SEV[s].c} />)}
-          </div>
-          <div style={{ width: 1, height: 22, background: "var(--line-2)" }} />
-          <div style={{ display: "flex", gap: 7 }}>
-            {proofs.map((p) => <Chip key={p} label={proofLabel(p)} active={proof === p} onClick={() => setProof(proof === p ? null : p)} color={PROOF_COLOR[p]} />)}
-          </div>
-          <div style={{ flex: 1 }} />
-          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="mono" style={{ fontSize: 12, height: 34, padding: "0 10px", borderRadius: 9, background: "var(--glass)", color: "var(--ink-2)", border: "1px solid var(--line)", cursor: "pointer" }}>
-            <option value="captured">Newest</option>
-            <option value="severity">Severity</option>
-            <option value="corroboration">Corroboration</option>
-          </select>
+          <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--ink-3)" }}>
+            Group
+            <select value={group} onChange={(e) => setGroup(e.target.value as GroupKey)} className="mono" style={{ fontSize: 12, height: 34, padding: "0 10px", borderRadius: 9, background: "var(--glass)", color: "var(--ink-2)", border: "1px solid var(--line)", cursor: "pointer" }}>
+              <option value="severity">Severity</option>
+              <option value="sdk">SDK</option>
+              <option value="class">Class</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--ink-3)" }}>
+            Sort
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="mono" style={{ fontSize: 12, height: 34, padding: "0 10px", borderRadius: 9, background: "var(--glass)", color: "var(--ink-2)", border: "1px solid var(--line)", cursor: "pointer" }}>
+              <option value="severity">Severity</option>
+              <option value="captured">Newest</option>
+              <option value="corroboration">Corroboration</option>
+            </select>
+          </label>
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 20 }}>
-          {classes.map((c) => <Chip key={c} label={c.replace(/-/g, " ")} active={cls === c} onClick={() => setCls(cls === c ? null : c)} />)}
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: sel ? "repeat(2,1fr)" : "repeat(3,1fr)", gap: 16 }}>
-          {filtered.map((r) => {
-            const s = SEV[r.severity];
-            const active = sel?.trapId === r.trapId;
-            return (
-              <button
-                key={r.trapId}
-                onClick={() => setSel(active ? null : r)}
-                className={`glass lift ${active ? "lift-emerald" : ""}`}
-                style={{
-                  borderRadius: "var(--radius-lg)",
-                  padding: 20,
-                  textAlign: "left",
-                  cursor: "pointer",
-                  border: active ? "1px solid rgba(52,211,153,0.45)" : "1px solid var(--line)",
-                  fontFamily: "var(--font-sans)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 500, padding: "3px 9px", borderRadius: 999, color: s.c, background: s.bg, textTransform: "capitalize" }}>{r.severity}</span>
-                  <span className="mono" style={{ fontSize: 11, color: PROOF_COLOR[r.proofMethod] ?? "var(--ink-4)" }}>{proofLabel(r.proofMethod)}</span>
+        {filtered.length === 0 ? (
+          <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "48px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 14 }}>
+            No VTIs match these filters.{" "}
+            <button onClick={reset} className="mono" style={{ fontSize: 13, color: "var(--emerald)", background: "transparent", border: "none", cursor: "pointer" }}>reset</button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+            {groups.map((g) => (
+              <section key={g.key}>
+                {group !== "none" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: g.color, boxShadow: `0 0 10px ${g.color}` }} />
+                    <h2 style={{ fontSize: 14.5, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>{g.key}</h2>
+                    <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)" }}>{g.rows.length}</span>
+                    <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  </div>
+                )}
+                <div style={{ display: "grid", gridTemplateColumns: cardCols, gap: 16 }}>
+                  {g.rows.map((r) => {
+                    const s = SEV[r.severity];
+                    const active = sel?.trapId === r.trapId;
+                    return (
+                      <button
+                        key={r.trapId}
+                        onClick={() => setSel(active ? null : r)}
+                        className={`glass lift ${active ? "lift-emerald" : ""}`}
+                        style={{ borderRadius: "var(--radius-lg)", padding: 20, textAlign: "left", cursor: "pointer", border: active ? "1px solid rgba(52,211,153,0.45)" : "1px solid var(--line)", fontFamily: "var(--font-sans)" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 500, padding: "3px 9px", borderRadius: 999, color: s.c, background: s.bg, textTransform: "capitalize" }}>{r.severity}</span>
+                          <span className="mono" style={{ fontSize: 11, color: PROOF_COLOR[r.proofMethod] ?? "var(--ink-4)" }}>{proofLabel(r.proofMethod)}</span>
+                        </div>
+                        <div className="mono" style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, letterSpacing: "-0.01em", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.trapId}</div>
+                        <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{r.sdk} · {titleCase(r.class)}</div>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="mono" style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, letterSpacing: "-0.01em", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.trapId}</div>
-                <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{r.sdk} · {r.class.replace(/-/g, " ")}</div>
-              </button>
-            );
-          })}
-        </div>
+              </section>
+            ))}
+          </div>
+        )}
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, fontSize: 12.5, color: "var(--ink-3)" }}>
+        <div style={{ marginTop: 24, fontSize: 12.5, color: "var(--ink-3)" }}>
           <span className="mono">{filtered.length} of {rows.length} VTIs</span>
-          {(sev || cls || proof || q) && (
-            <button onClick={() => { setSev(null); setCls(null); setProof(null); setQ(""); }} className="mono" style={{ fontSize: 12, color: "var(--ink-2)", background: "transparent", border: "none", cursor: "pointer" }}>clear filters</button>
-          )}
-          {filtered.length === 0 && <span>No VTIs match these filters.</span>}
         </div>
       </div>
 
