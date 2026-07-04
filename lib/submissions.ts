@@ -16,6 +16,19 @@
 import { supabaseAdmin } from "./supabase";
 import type { CorpusVti } from "./brainblast/corpus";
 
+// Shared auth for the re-prover endpoints (queue + verify). Whitespace-tolerant
+// (a trailing newline from pasting a secret is the classic silent mismatch), and
+// it distinguishes "not configured on this deployment" from "wrong token" so a
+// 401 is actually diagnosable.
+export type ReproveAuth = "ok" | "unconfigured" | "unauthorized";
+
+export function checkReproveAuth(authHeader: string | null): ReproveAuth {
+  const token = (process.env.BRAINBLAST_REPROVE_TOKEN ?? "").trim();
+  if (!token) return "unconfigured";
+  const provided = (authHeader ?? "").trim().replace(/^Bearer\s+/i, "").trim();
+  return provided === token ? "ok" : "unauthorized";
+}
+
 export interface QueuedFinding {
   trapId: string;
   finding: Record<string, any>; // the full submitted Finding (fixtures included)

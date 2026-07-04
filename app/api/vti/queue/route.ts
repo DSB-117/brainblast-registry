@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadUnprovenQueue } from "../../../../lib/submissions";
+import { loadUnprovenQueue, checkReproveAuth } from "../../../../lib/submissions";
 
-// GET /api/vti/queue — the re-proof queue: full findings (fixtures included) that
-// still need server-side RED→GREEN. SERVER-SECRET gated (it returns trainable
-// fixtures), for the brainblast re-prover only. Auth: Bearer BRAINBLAST_REPROVE_TOKEN.
+// GET /api/vti/queue — the re-proof queue (full findings, fixtures included) for
+// the brainblast re-prover. Bearer BRAINBLAST_REPROVE_TOKEN.
 export const dynamic = "force-dynamic";
 
-function authorized(req: NextRequest): boolean {
-  const token = process.env.BRAINBLAST_REPROVE_TOKEN;
-  if (!token) return false; // fail closed: no token configured → endpoint disabled
-  return req.headers.get("authorization") === `Bearer ${token}`;
-}
-
 export async function GET(req: NextRequest) {
-  if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const auth = checkReproveAuth(req.headers.get("authorization"));
+  if (auth === "unconfigured") {
+    return NextResponse.json({ error: "reprove endpoint not configured (BRAINBLAST_REPROVE_TOKEN unset on this deployment)" }, { status: 503 });
+  }
+  if (auth !== "ok") return NextResponse.json({ error: "unauthorized (token mismatch)" }, { status: 401 });
   try {
     const items = await loadUnprovenQueue();
     return NextResponse.json({ count: items.length, items });
