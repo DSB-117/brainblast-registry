@@ -108,13 +108,14 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
   return (
     <div className="card glass submission-card">
       <div className="card-header">
-        <h3>{stake ? "Step 2 — pay your stake" : "Register a rule"}</h3>
+        <h3>{stake ? "Step 2 — pay your bond" : "Register a bond"}</h3>
       </div>
 
       {!publicKey && (
         <p className="muted">
-          Connect a wallet (top left) to register a submission and pay your stake in SOL, USDC,
-          or $BRAIN (10% discount on the equivalent USD stake).
+          Connect a wallet (top left) to register a confidence bond behind a trap you maintain,
+          in SOL, USDC, or $BRAIN (10% discount on the equivalent USD amount). Optional — never
+          required to contribute.
         </p>
       )}
 
@@ -170,8 +171,9 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
             </label>
           </div>
           <p className="field-hint" style={{ margin: 0 }}>
-            $5 suggested — covers indexer/gas costs and signals you'll maintain this rule. Stake
-            more for higher visibility once your pack graduates.
+            The amount is your confidence signal — it amplifies your dividend share, and the
+            reproduction gate slashes it if the trap ever stops reproducing. On-chain settlement
+            is rolling out.
           </p>
           {usdOwed !== null && (
             <p className={token === "BRAIN" ? "token-discount" : "muted"} style={{ margin: 0 }}>
