@@ -24,8 +24,21 @@ export interface QueuedFinding {
 // Map a stored submission `record` to the CorpusVti shape the catalog/dashboard
 // consume. A proof_verified row is, by definition, RED→GREEN — so we stamp the
 // receipt true and carry the re-proof method through.
+function langFromFilename(filename?: string): string {
+  const f = filename ?? "";
+  if (/\.tsx?$/.test(f)) return "typescript";
+  if (/\.jsx?$/.test(f)) return "javascript";
+  if (/\.go$/.test(f)) return "go";
+  if (/\.sol$/.test(f)) return "solidity";
+  if (/\.py$/.test(f)) return "python";
+  if (/\.rs$/.test(f)) return "rust";
+  return "typescript";
+}
+
 function recordToCorpusVti(record: Record<string, any>): CorpusVti {
   const proof = (record.redGreenProof as Record<string, any> | undefined) ?? {};
+  const fx = (record.fixtures as Record<string, any> | undefined) ?? {};
+  const lang = langFromFilename(fx.filename);
   return {
     trapId: record.trapId,
     title: record.title,
@@ -34,7 +47,11 @@ function recordToCorpusVti(record: Record<string, any>): CorpusVti {
     class: record.class,
     corroborationCount: Math.max(0, record.corroborationCount ?? 0),
     redGreenProof: { red: true, green: true, method: proof.method ?? "static-checker" },
-    vulnerable: { snippet: record.fixtures?.vulnerable ?? "" },
+    // Full fixtures (not just the vulnerable snippet) so the paid distribution
+    // feed serves a complete trainable record, same as a git-corpus VTI.
+    vulnerable: { lang, path: fx.filename ?? null, snippet: fx.vulnerable ?? "" },
+    fixed: { lang, path: fx.filename ?? null, snippet: fx.fixed ?? "" },
+    generatedTest: null,
     license: record.license ?? "contributor-grant-v1",
     capturedAt: record.capturedAt ?? null,
   } as CorpusVti;
