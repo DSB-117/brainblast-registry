@@ -21,7 +21,7 @@
 
 import { detectFileSecrets } from "./brainblast/detect";
 import { verifyProvenance } from "./brainblast/provenance";
-import { classifyTrap } from "./brainblast/vtiClass";
+import { classifyTrap, TRAP_CLASSES } from "./brainblast/vtiClass";
 
 // Mirrors packages/core/src/checkers/index.ts::checkerKinds. Kept in sync by hand
 // (the registry vendors data, not the checker engine); an unknown kind fails
@@ -120,7 +120,12 @@ export async function ingestVtiSubmission(
   // Mint the stored candidate. proof_verified=false: RED→GREEN is re-proven by
   // the brainblast side (where ts-morph lives) before this reaches a paid tier.
   const now = opts.now ?? new Date().toISOString();
-  const cls = classifyTrap({ id: f.id, title: f.title } as any);
+  // Prefer the submitter's declared class when it's a valid taxonomy value — the
+  // fleet already classified it authoritatively (its CLASS_BY_RULE knows the new
+  // rule id, which the vendored heuristic here does not). Fall back to the
+  // id+title heuristic only when no valid class was declared.
+  const declared = typeof f.class === "string" && (TRAP_CLASSES as readonly string[]).includes(f.class) ? f.class : null;
+  const cls = declared ?? classifyTrap({ id: f.id, title: f.title } as any);
   const record = {
     trapId: f.id,
     title: f.title,
