@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { markProofVerified } from "../../../../lib/submissions";
+import { markProofVerified, checkReproveAuth } from "../../../../lib/submissions";
 
 // POST /api/vti/verify — the re-prover writes back a RED→GREEN verdict.
-// Body: { trapId, proofVerified, method }. Same server-secret gate as the queue.
+// Body: { trapId, proofVerified, method }. Bearer BRAINBLAST_REPROVE_TOKEN.
 export const dynamic = "force-dynamic";
 
-function authorized(req: NextRequest): boolean {
-  const token = process.env.BRAINBLAST_REPROVE_TOKEN;
-  if (!token) return false;
-  return req.headers.get("authorization") === `Bearer ${token}`;
-}
-
 export async function POST(req: NextRequest) {
-  if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const auth = checkReproveAuth(req.headers.get("authorization"));
+  if (auth === "unconfigured") {
+    return NextResponse.json({ error: "reprove endpoint not configured (BRAINBLAST_REPROVE_TOKEN unset on this deployment)" }, { status: 503 });
+  }
+  if (auth !== "ok") return NextResponse.json({ error: "unauthorized (token mismatch)" }, { status: 401 });
   let body: any;
   try {
     body = await req.json();
