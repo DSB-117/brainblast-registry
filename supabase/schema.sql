@@ -132,3 +132,26 @@ create table if not exists fleet_ledger_audit (
 );
 create index if not exists fleet_ledger_audit_ip_time_idx
   on fleet_ledger_audit (ip_hash, recorded_at desc);
+
+-- Verified Trap Instances submitted directly via POST /api/vti (R11 — git-less
+-- ingest). `record` is the minted contributor-licensed VTI. provenance_verified
+-- is stamped at ingest (cited commit fetched + vulnerable line confirmed);
+-- proof_verified is flipped by a brainblast-side RED→GREEN re-proof before a row
+-- reaches any paid tier. Full DDL + audit table in migrations/0001_vtis.sql.
+create table if not exists vtis (
+  trap_id            text primary key,
+  record             jsonb not null,
+  provenance_verified boolean not null default true,
+  proof_verified     boolean not null default false,
+  created_at         timestamptz not null default now()
+);
+create index if not exists vtis_proof_verified_idx on vtis (proof_verified);
+
+create table if not exists vti_ingest_audit (
+  id          bigint generated always as identity primary key,
+  ip_hash     text not null,
+  trap_id     text,
+  recorded_at timestamptz not null default now()
+);
+create index if not exists vti_ingest_audit_ip_time_idx
+  on vti_ingest_audit (ip_hash, recorded_at desc);
