@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../lib/supabase";
 import { loadLots } from "../../lib/vti";
 import { buildCatalog } from "../../lib/brainblast";
+import { loadBondableVtis, type BondableVti } from "../../lib/corpusIndex";
 import StakeSection from "../../components/StakeSection";
 import WalletButton from "../../components/WalletButton";
 import WalletBalances from "../../components/WalletBalances";
@@ -48,6 +49,15 @@ async function getCorpusStats(): Promise<CorpusStats> {
     return { vtis: c.counts.proven, sdks: c.counts.sdks, classes: c.counts.classes };
   } catch {
     return { vtis: 0, sdks: 0, classes: 0 };
+  }
+}
+
+// The proven VTIs a contributor can place a confidence bond behind, richest first.
+async function getBondableVtis(): Promise<BondableVti[]> {
+  try {
+    return await loadBondableVtis();
+  } catch {
+    return [];
   }
 }
 
@@ -102,7 +112,7 @@ const SUBMIT_CMD = [
 ];
 
 export default async function StakePage() {
-  const [packs, stats] = await Promise.all([getPacks(), getCorpusStats()]);
+  const [packs, stats, bondableVtis] = await Promise.all([getPacks(), getCorpusStats(), getBondableVtis()]);
 
   return (
     <div className="stake-app" style={{ maxWidth: 1120, margin: "0 auto", padding: "56px 28px 20px", animation: "fade 0.4s ease" }}>
@@ -139,14 +149,12 @@ export default async function StakePage() {
             </a>
           </div>
 
-          {/* Optional confidence bond — designed, not yet settled on-chain */}
+          {/* Confidence bond on a real VTI — bonding + slashing are live; the
+              dividend payout is the remaining operational step. */}
           <div className="card glass sidebar-card">
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>Optional: bond $BRAIN behind a trap</div>
-              <span style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: "var(--glass-2)", color: "var(--amber)", border: "1px solid var(--line)" }}>ROLLING OUT</span>
-            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Optional: bond $BRAIN behind a VTI</div>
             <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 14px", lineHeight: 1.55 }}>
-              Never required to contribute. Bond $BRAIN, SOL, or USDC (10% off in $BRAIN) behind a trap you maintain to signal confidence and amplify your dividend share — the reproduction gate is the slash trigger if it ever stops reproducing. On-chain settlement is rolling out; you can register a bond today.
+              Never required to contribute. Bond $BRAIN, SOL, or USDC (10% off in $BRAIN) behind a proven VTI to signal confidence and amplify your dividend share — weighted by the trap&apos;s score (severity × corroboration). The reproduction gate is the slash trigger: if the VTI ever stops reproducing, the bond is slashed. Bonding and slashing are live; the on-chain dividend <em>payout</em> is rolling out.
             </p>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
               <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>Connect a wallet to register a bond.</div>
@@ -154,7 +162,7 @@ export default async function StakePage() {
             </div>
             <WalletBalances />
             <div style={{ marginTop: 14 }}>
-              <StakeSection packs={packs} />
+              <StakeSection vtis={bondableVtis} />
             </div>
           </div>
           <MySubmissions />

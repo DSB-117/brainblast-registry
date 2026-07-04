@@ -155,3 +155,10 @@ create table if not exists vti_ingest_audit (
 );
 create index if not exists vti_ingest_audit_ip_time_idx
   on vti_ingest_audit (ip_hash, recorded_at desc);
+
+-- Bond-on-VTI (R5): the staking rail bonds behind a VTI's trap_id, not a
+-- pack/rule. See migrations/0002_vti_bonds.sql.
+alter table stake_submissions add column if not exists trap_id text;
+alter table stake_submissions alter column pack_id drop not null;
+alter table stake_submissions alter column rule_id drop not null;
+create index if not exists stake_submissions_trap_idx on stake_submissions (trap_id);

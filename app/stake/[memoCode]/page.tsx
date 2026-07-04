@@ -7,17 +7,17 @@ export default async function StakePage({ params }: { params: { memoCode: string
   const db = supabaseAdmin();
   const { data, error } = await db
     .from("stake_submissions")
-    .select("memo_code, pack_id, rule_id, stake_usd, status")
+    .select("memo_code, trap_id, pack_id, rule_id, stake_usd, status")
     .eq("memo_code", params.memoCode)
     .maybeSingle();
 
   if (error || !data) {
     return (
       <div className="page">
-        <h1 className="hero-title">Stake not found</h1>
+        <h1 className="hero-title">Bond not found</h1>
         <p>
-          No stake submission with memo code <span className="code-pill">{params.memoCode}</span>.
-          Go to the <a href="/" style={{ color: "var(--cyan)" }}>registry home</a> to register one.
+          No bond with memo code <span className="code-pill">{params.memoCode}</span>.
+          Go to the <a href="/stake" style={{ color: "var(--cyan)" }}>staking app</a> to register one.
         </p>
       </div>
     );

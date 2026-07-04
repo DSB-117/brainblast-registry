@@ -22,8 +22,9 @@ const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 
 export interface StakeInfo {
   memo_code: string;
-  pack_id: string;
-  rule_id: string;
+  trap_id?: string; // the VTI this bond backs
+  pack_id?: string; // legacy
+  rule_id?: string; // legacy
   stake_usd: number;
   status: string;
   pay_to: string;
@@ -169,18 +170,18 @@ export default function StakePayment({
   return (
     <div>
       <p>
-        Pack: <span className="code-pill">{stake.pack_id}</span> · Rule:{" "}
-        <span className="code-pill">{stake.rule_id}</span>
+        Bonding behind:{" "}
+        <span className="code-pill">{stake.trap_id ?? stake.pack_id ?? "—"}</span>
       </p>
       <p>
-        Stake: <strong style={{ color: "var(--ink)" }}>${stake.stake_usd}</strong> · status:{" "}
+        Bond: <strong style={{ color: "var(--ink)" }}>${stake.stake_usd}</strong> · status:{" "}
         <span className="code-pill">{stake.status}</span>
       </p>
       <p className="muted">Pay to: {stake.pay_to}</p>
 
       {stake.status !== "pending_payment" ? (
         <p style={{ color: "var(--amber)" }}>
-          This stake is already <strong>{stake.status}</strong> — no payment needed.
+          This bond is already <strong>{stake.status}</strong> — no payment needed.
         </p>
       ) : (
         <>

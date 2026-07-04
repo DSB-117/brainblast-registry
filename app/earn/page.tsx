@@ -158,7 +158,7 @@ export default function Earn() {
             ))}
           </div>
           <p style={{ fontSize: 12, color: "var(--ink-4)", margin: "18px 0 0", lineHeight: 1.55, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
-            Contribution, the RED→GREEN + provenance gate, and the corpus are live today. On-chain settlement of the data dividend and the $BRAIN confidence bond are designed and rolling out.
+            Contribution, the RED→GREEN + provenance gate, the corpus, and the $BRAIN confidence bond (registration + slash-on-non-reproduction) are live today. The on-chain <em>payout</em> of the data dividend is the remaining operational step, rolling out.
           </p>
         </Card>
       </div>
