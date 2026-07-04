@@ -36,6 +36,8 @@ const VETTED_CHECK_KINDS = new Set([
   "anchor-forbidden-account-type", "anchor-body-call-pattern",
   "anchor-cpi-unverified-program", "fee-configs-zero-or-missing",
   "compiles-against-sdk", "differential-io", "array-property-contains-forbidden-literal",
+  // Multi-language static AST (tree-sitter) — Go + Solidity.
+  "cst-struct-field-forbidden-literal", "cst-member-access-forbidden",
 ]);
 const VETTED_TEST_KINDS = new Set([
   "stripe-webhook-signature", "privy-jwt-claims", "bags-fee-share",
