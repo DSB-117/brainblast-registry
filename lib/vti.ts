@@ -27,11 +27,18 @@ export async function loadLots(): Promise<ServerLot[]> {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`failed to fetch VTI lot ${url}: ${res.status}`);
     const text = await res.text();
-    const vtis = text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .map((l) => JSON.parse(l) as CorpusVti);
+    // Skip any line that doesn't parse (e.g. a stray git conflict marker
+    // committed into the dataset) rather than throwing away the whole lot.
+    const vtis: CorpusVti[] = [];
+    for (const line of text.split("\n")) {
+      const t = line.trim();
+      if (!t) continue;
+      try {
+        vtis.push(JSON.parse(t) as CorpusVti);
+      } catch {
+        // skip the unparseable line
+      }
+    }
     lots.push({ name: url.split("/").pop() ?? url, vtis });
   }
   cache = { at: Date.now(), lots };
