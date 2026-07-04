@@ -135,6 +135,10 @@ export async function ingestVtiSubmission(
     severity: f.severity,
     class: cls,
     checkKind: f.binding.check.kind,
+    // Stored verbatim so the brainblast-side re-prover can reconstruct the exact
+    // Finding and re-run RED→GREEN (the reconciliation loop).
+    detect: f.detect,
+    binding: f.binding,
     fixtures: { filename: f.fixtures.filename, vulnerable: f.fixtures.vulnerable, fixed: f.fixtures.fixed },
     provenance: {
       sourceRef: f.provenance?.sourceRef ?? null,
