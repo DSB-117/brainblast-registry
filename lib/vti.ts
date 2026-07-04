@@ -6,6 +6,7 @@
 // instance. Lot name = the URL's basename, so a grant's lot-scope matches.
 
 import type { CorpusVti, ServerLot } from "./brainblast";
+import { loadVerifiedSubmissions } from "./submissions";
 
 const DEFAULT_SOURCE =
   "https://raw.githubusercontent.com/DSB-117/brainblast/main/datasets/v0.1.0/full/vti.jsonl";
@@ -41,6 +42,14 @@ export async function loadLots(): Promise<ServerLot[]> {
     }
     lots.push({ name: url.split("/").pop() ?? url, vtis });
   }
+
+  // Fold in RED→GREEN-verified direct submissions (the /api/vti path) as their own
+  // lot, deduped against the git corpus by trapId — so an API-landed VTI appears in
+  // the served corpus with no PR, without ever double-counting one already in git.
+  const known = new Set(lots.flatMap((l) => l.vtis.map((v) => v.trapId)));
+  const submitted = (await loadVerifiedSubmissions()).filter((v) => !known.has(v.trapId));
+  if (submitted.length) lots.push({ name: "api-submissions", vtis: submitted });
+
   cache = { at: Date.now(), lots };
   return lots;
 }
