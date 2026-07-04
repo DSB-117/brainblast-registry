@@ -3,7 +3,7 @@ import { loadDashboard } from "../lib/dashboardData";
 import HeroViz from "../components/store/HeroViz";
 import Offers from "../components/store/Offers";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 const SEV = {
   critical: { c: "var(--rose)", bg: "rgba(251,113,133,0.14)" },

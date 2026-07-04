@@ -21,14 +21,19 @@ function areaPath(series: number[], w: number, h: number, pad = 6) {
 
 function useCountUp(target: number, ms = 1100) {
   const [v, setV] = useState(0);
+  const fromRef = useRef(0);
   useEffect(() => {
+    const from = fromRef.current;
     let raf = 0;
     const t0 = performance.now();
     const tick = (t: number) => {
       const p = Math.min(1, (t - t0) / ms);
       const eased = 1 - Math.pow(1 - p, 3);
-      setV(Math.round(eased * target));
+      // Animate from the PREVIOUS value to the new target, so a live +1 tick
+      // (from polling) glides up instead of snapping back to 0 and recounting.
+      setV(Math.round(from + (target - from) * eased));
       if (p < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = target;
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -50,8 +55,32 @@ export default function HeroViz({
   growth: number[];
 }) {
   const chart = areaPath(growth, 340, 128);
-  const count = useCountUp(vtis);
-  const repro = useCountUp(reproductionPct, 1400);
+
+  // Live corpus counters — seed from the server-rendered props, then poll the
+  // lightweight /api/overview every ~50s so the numbers tick up without a reload.
+  const [stats, setStats] = useState({ vtis, sdks, classesLabel, reproductionPct });
+  useEffect(() => {
+    let alive = true;
+    const poll = async () => {
+      try {
+        const r = await fetch("/api/overview", { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const d = await r.json();
+        if (!alive || typeof d?.vtis !== "number") return;
+        setStats({ vtis: d.vtis, sdks: d.sdks, classesLabel: d.classesLabel, reproductionPct: d.reproductionPct });
+      } catch {
+        // keep the last-known numbers on a transient failure
+      }
+    };
+    const id = setInterval(poll, 50_000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  const count = useCountUp(stats.vtis);
+  const repro = useCountUp(stats.reproductionPct, 1400);
   const [drawn, setDrawn] = useState(false);
   const dotRef = useRef<SVGCircleElement>(null);
 
@@ -99,7 +128,7 @@ export default function HeroViz({
       </svg>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
-        {[["SDKs", String(sdks), "var(--cyan)"], ["Classes", classesLabel, "var(--violet)"], ["Reproduced", `${repro}%`, "var(--emerald)"]].map(([l, v, c]) => (
+        {[["SDKs", String(stats.sdks), "var(--cyan)"], ["Classes", stats.classesLabel, "var(--violet)"], ["Reproduced", `${repro}%`, "var(--emerald)"]].map(([l, v, c]) => (
           <div key={l}>
             <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 5 }}>{l}</div>
             <div className="mono" style={{ fontSize: 19, fontWeight: 600, color: c }}>{v}</div>

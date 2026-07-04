@@ -61,17 +61,34 @@ export async function loadDashboard(): Promise<Dashboard> {
   const url = process.env.VTI_SOURCE_URL?.split(",")[0]?.trim() || DEFAULT_SOURCE;
   let records: CorpusVti[] = [];
   try {
-    const res = await fetch(url, { next: { revalidate: 300 } });
+    const res = await fetch(url, { next: { revalidate: 45 } });
     if (res.ok) {
-      records = (await res.text())
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .map((l) => JSON.parse(l) as CorpusVti);
+      // Parse per line and SKIP any that don't parse — a single corrupt line
+      // (e.g. a stray git conflict marker committed into the dataset) must never
+      // zero the whole public dashboard. Degrade gracefully, not fail-closed.
+      for (const line of (await res.text()).split("\n")) {
+        const t = line.trim();
+        if (!t) continue;
+        try {
+          records.push(JSON.parse(t) as CorpusVti);
+        } catch {
+          // skip the unparseable line
+        }
+      }
     }
   } catch {
     records = [];
   }
+
+  // Dedupe by trapId. A trapId is unique in the corpus, so this is correct in the
+  // normal case — and it also neutralizes a both-sides-present git merge conflict
+  // (which would otherwise double-count every record) into the right number.
+  const seenTrap = new Set<string>();
+  records = records.filter((v) => {
+    if (!v?.trapId || seenTrap.has(v.trapId)) return false;
+    seenTrap.add(v.trapId);
+    return true;
+  });
 
   const severity = { critical: 0, high: 0, medium: 0, low: 0 };
   const proofCount = new Map<string, number>();
