@@ -7,10 +7,20 @@ import { fetchUsdPrices } from "../lib/price";
 
 const BRAIN_MINT = TOKENS.BRAIN.mint;
 
+// Friendly labels for the stake_submissions status enum — the DB value
+// `graduated` predates the VTI model; surface it honestly as "confirmed".
+const STATUS_LABEL: Record<string, string> = {
+  pending_payment: "pending",
+  staked: "bonded",
+  graduated: "confirmed",
+  rejected: "rejected",
+};
+
 interface Submission {
   memo_code: string;
-  pack_id: string;
-  rule_id: string;
+  trap_id: string | null;
+  pack_id: string | null; // legacy
+  rule_id: string | null; // legacy
   stake_usd: number;
   status: string;
   token_mint: string | null;
@@ -69,7 +79,7 @@ export default function MySubmissions() {
 
   return (
     <div className="card glass sidebar-card">
-      <p className="sidebar-card-title">Rules you've submitted</p>
+      <p className="sidebar-card-title">Your bonds</p>
 
       {submissions === null && <p className="muted">Loading…</p>}
       {submissions?.length === 0 && <p className="muted">No submissions yet.</p>}
@@ -79,10 +89,10 @@ export default function MySubmissions() {
           {submissions.slice(0, 5).map((s) => (
             <div className="submission-row" key={s.memo_code}>
               <div>
-                <p className="submission-pack">{s.pack_id}</p>
-                <p className="submission-rule">{s.rule_id}</p>
+                <p className="submission-pack">{s.trap_id ?? s.pack_id ?? "—"}</p>
+                <p className="submission-rule">bond · ${s.stake_usd}</p>
               </div>
-              <span className={`code-pill status-${s.status}`}>{s.status}</span>
+              <span className={`code-pill status-${s.status}`}>{STATUS_LABEL[s.status] ?? s.status}</span>
             </div>
           ))}
         </div>
@@ -90,13 +100,13 @@ export default function MySubmissions() {
 
       <div className="sidebar-stats">
         <div>
-          <p className="sidebar-card-title">$BRAIN staked</p>
+          <p className="sidebar-card-title">$BRAIN bonded</p>
           <p className="sidebar-stat-value">
             {stakedTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
           </p>
         </div>
         <div>
-          <p className="sidebar-card-title">$BRAIN earnings</p>
+          <p className="sidebar-card-title">Dividend · rolling out</p>
           <p className="sidebar-stat-value">
             {earningsTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
           </p>

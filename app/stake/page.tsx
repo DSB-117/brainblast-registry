@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "../../lib/supabase";
-import { BOUNTY_POOL_WALLET } from "../../lib/solana";
-import { TOKENS, BRAIN_DISCOUNT } from "../../lib/tokens";
-import { fetchUsdPrices } from "../../lib/price";
+import { loadLots } from "../../lib/vti";
+import { buildCatalog } from "../../lib/brainblast";
+import { loadBondableVtis, type BondableVti } from "../../lib/corpusIndex";
 import StakeSection from "../../components/StakeSection";
 import WalletButton from "../../components/WalletButton";
 import WalletBalances from "../../components/WalletBalances";
@@ -19,13 +19,11 @@ interface Pack {
   synced_at: string;
 }
 
-interface Stats {
-  packsSubmitted: number;
-  brainStaked: number;
-  bugsPrevented: number;
+interface CorpusStats {
+  vtis: number;
+  sdks: number;
+  classes: number;
 }
-
-const BRAIN_MINT = TOKENS.BRAIN.mint;
 
 async function getPacks(): Promise<Pack[]> {
   try {
@@ -41,31 +39,25 @@ async function getPacks(): Promise<Pack[]> {
   }
 }
 
-async function getStats(): Promise<Stats> {
+// Real corpus numbers, straight from the same lots the distribution endpoint
+// serves — the count of PROVEN VTIs, the SDKs they cover, and the trap classes.
+async function getCorpusStats(): Promise<CorpusStats> {
   try {
-    const db = supabaseAdmin();
-    const [packsRes, stakedRes, pendingRes, bugsRes] = await Promise.all([
-      db.from("pack_registry").select("*", { count: "exact", head: true }),
-      db.from("stake_submissions").select("token_amount").in("status", ["staked", "graduated"]).eq("token_mint", BRAIN_MINT),
-      db.from("stake_submissions").select("stake_usd").eq("status", "pending_payment"),
-      db.from("telemetry_events").select("*", { count: "exact", head: true }),
-    ]);
-
-    let brainStaked = (stakedRes.data ?? []).reduce((sum, r: any) => sum + Number(r.token_amount ?? 0), 0);
-    const pendingUsd = (pendingRes.data ?? []).reduce((sum, r: any) => sum + Number(r.stake_usd ?? 0), 0);
-    if (pendingUsd > 0) {
-      try {
-        const prices = await fetchUsdPrices([TOKENS.BRAIN.priceMint]);
-        const brainPrice = prices[TOKENS.BRAIN.priceMint];
-        if (brainPrice) brainStaked += (pendingUsd * (1 - BRAIN_DISCOUNT)) / brainPrice;
-      } catch {
-        // ignore — pending estimate just won't be included
-      }
-    }
-
-    return { packsSubmitted: packsRes.count ?? 0, brainStaked, bugsPrevented: bugsRes.count ?? 0 };
+    const lots = await loadLots();
+    const vtis = lots.flatMap((l) => l.vtis);
+    const c = buildCatalog(vtis);
+    return { vtis: c.counts.proven, sdks: c.counts.sdks, classes: c.counts.classes };
   } catch {
-    return { packsSubmitted: 0, brainStaked: 0, bugsPrevented: 0 };
+    return { vtis: 0, sdks: 0, classes: 0 };
+  }
+}
+
+// The proven VTIs a contributor can place a confidence bond behind, richest first.
+async function getBondableVtis(): Promise<BondableVti[]> {
+  try {
+    return await loadBondableVtis();
+  } catch {
+    return [];
   }
 }
 
@@ -78,11 +70,12 @@ function inferCategory(pack_id: string): string {
   return "Web3";
 }
 
+// The real contribution loop — how a trap actually becomes a VTI in the corpus.
 const STEPS = [
-  ["Register", "Connect a wallet, pick your pack and rule ID, and submit. You get a memo code and a USD-denominated stake amount — no account, no approval."],
-  ["Stake", "Pay in SOL, USDC, or $BRAIN (10% off), converted from USD at live prices. $5 is the suggested minimum — enough to cover indexer/gas and show you'll maintain the rule."],
-  ["Graduate", "When brainblast confirms your rule's RED→GREEN fix across 5 distinct repos within 90 days, it graduates — the corroboration that makes a rule worth a buyer's money."],
-  ["Earn or reclaim", "Graduated stakes feed the $BRAIN bounty pool that pays you as the author. A rejected submission can always reclaim its stake."],
+  ["Prove it RED→GREEN", "Author a candidate that catches the bug and prove it locally: the oracle FAILS your vulnerable fixture and PASSES your fix. Non-reproducing work never makes it in."],
+  ["Cite the real source", "Point at the exact commit the bug lives in (owner/repo@<sha>:path) with the verbatim vulnerable line. The server fetches that file at that commit and confirms it's real — the anti-fabrication check that replaces human review."],
+  ["Submit — no PR", "`brainblast submit:vti` posts your candidate straight into the corpus. It's re-checked end to end — RED→GREEN + secret scan + provenance — and only what passes lands. No fork, no reviewer, no waiting."],
+  ["Earn on usage", "Your finding becomes a VTI scored by severity × corroboration. As the corpus is licensed for training and evaluation, the data dividend routes value back to the contributors whose records are used."],
 ];
 
 function PackCard({ pack }: { pack: Pack }) {
@@ -112,41 +105,70 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+const SUBMIT_CMD = [
+  "# prove it locally, then post it straight into the corpus",
+  "brainblast submit:vti --candidate ./my-trap.json --dry-run",
+  "brainblast submit:vti --candidate ./my-trap.json",
+];
+
 export default async function StakePage() {
-  const [packs, stats] = await Promise.all([getPacks(), getStats()]);
+  const [packs, stats, bondableVtis] = await Promise.all([getPacks(), getCorpusStats(), getBondableVtis()]);
 
   return (
     <div className="stake-app" style={{ maxWidth: 1120, margin: "0 auto", padding: "56px 28px 20px", animation: "fade 0.4s ease" }}>
       <div style={{ marginBottom: 30 }}>
-        <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 12 }}>Contribute · Stake</div>
-        <h1 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Stake behind your rules</h1>
-        <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px 0 0", maxWidth: 660, lineHeight: 1.6 }}>
-          Author a rule that catches an SDK bug, stake behind it, and earn from the $BRAIN bounty pool when it graduates across real repos. Graduated rules become VTIs in the corpus buyers train and evaluate on. New here? <a href="/earn" style={{ color: "var(--emerald)" }}>Read the contributor guide →</a>
+        <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 12 }}>Contribute · Earn</div>
+        <h1 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Contribute a verified trap</h1>
+        <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px 0 0", maxWidth: 680, lineHeight: 1.6 }}>
+          Prove a real SDK footgun RED→GREEN, cite the commit it lives in, and submit it in one command — no PR, no reviewer. It becomes a VTI in the corpus buyers train and evaluate on, and the data dividend pays you as it's used. New here? <a href="/earn" style={{ color: "var(--emerald)" }}>Read the contributor guide →</a>
         </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 28 }}>
-        <Stat label="Rules staked" value={String(stats.packsSubmitted)} />
-        <Stat label="$BRAIN staked" value={stats.brainStaked.toLocaleString(undefined, { maximumFractionDigits: 0 })} />
-        <Stat label="Fixes recorded" value={String(stats.bugsPrevented)} />
+        <Stat label="Verified VTIs" value={stats.vtis.toLocaleString()} />
+        <Stat label="SDKs covered" value={String(stats.sdks)} />
+        <Stat label="Trap classes" value={String(stats.classes)} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 22, alignItems: "start" }}>
-        {/* Left — the app */}
+        {/* Left — the real contribution path + the optional bond */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="card glass sidebar-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Your wallet</div>
-              <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>Connect to register and pay a stake.</div>
-            </div>
-            <WalletButton />
+          <div className="card glass sidebar-card">
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Submit in one command</div>
+            <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 12px", lineHeight: 1.55 }}>
+              Contribution is a CLI command, not a form — the gate is automatic. Your candidate is re-proven server-side and only lands if RED→GREEN, secret-clean, and provenance-verified all pass.
+            </p>
+            <pre className="mono" style={{ margin: 0, padding: "14px 16px", borderRadius: 12, background: "rgba(0,0,0,0.4)", border: "1px solid var(--line)", fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-2)", overflowX: "auto" }}>
+              {SUBMIT_CMD.map((l) => (
+                <div key={l} style={{ color: l.startsWith("#") ? "var(--ink-4)" : "var(--ink-2)" }}>{l}</div>
+              ))}
+            </pre>
+            <a href="/docs" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 14, fontSize: 13, fontWeight: 600, color: "var(--emerald)" }}>
+              Candidate format &amp; provenance
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </a>
           </div>
-          <WalletBalances />
-          <StakeSection packs={packs} />
+
+          {/* Confidence bond on a real VTI — bonding + slashing are live; the
+              dividend payout is the remaining operational step. */}
+          <div className="card glass sidebar-card">
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Optional: bond $BRAIN behind a VTI</div>
+            <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 14px", lineHeight: 1.55 }}>
+              Never required to contribute. Bond $BRAIN, SOL, or USDC (10% off in $BRAIN) behind a proven VTI to signal confidence and amplify your dividend share — weighted by the trap&apos;s score (severity × corroboration). The reproduction gate is the slash trigger: if the VTI ever stops reproducing, the bond is slashed. Bonding and slashing are live; the on-chain dividend <em>payout</em> is rolling out.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+              <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>Connect a wallet to register a bond.</div>
+              <WalletButton />
+            </div>
+            <WalletBalances />
+            <div style={{ marginTop: 14 }}>
+              <StakeSection vtis={bondableVtis} />
+            </div>
+          </div>
           <MySubmissions />
         </div>
 
-        {/* Right — how it works + bounty pool */}
+        {/* Right — how it works + $BRAIN */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 84 }}>
           <div className="card glass sidebar-card">
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>How it works</div>
@@ -164,18 +186,26 @@ export default async function StakePage() {
           </div>
 
           <div className="card glass sidebar-card">
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Bounty pool</div>
-            <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 10px", lineHeight: 1.55 }}>Funded by graduated stakes — the source that pays rule authors.</p>
-            <div className="mono" style={{ fontSize: 11, color: "var(--ink-2)", wordBreak: "break-all", background: "rgba(0,0,0,0.35)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 12px" }}>{BOUNTY_POOL_WALLET}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>What $BRAIN is</div>
+            <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 10px", lineHeight: 1.55 }}>
+              An optional rail, never a paywall. Buyers pay in USD by default; $BRAIN pays at a standing 10% discount, and holding it unlocks the access tiers. USDC we take at full price is bought back into $BRAIN and routed to contributors.
+            </p>
+            <a href="/pricing" style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 600, color: "var(--emerald)" }}>
+              See the access tiers
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </a>
           </div>
         </div>
       </div>
 
-      {/* Registry */}
+      {/* Installable rule packs (separate from the VTI corpus) */}
       <div style={{ marginTop: 44 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 16px" }}>Rules in the registry</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Installable rule packs</h2>
+        <p style={{ fontSize: 13.5, color: "var(--ink-3)", margin: "0 0 16px", maxWidth: 620, lineHeight: 1.55 }}>
+          The guardrail packs you can install to catch these traps in your own CI — distinct from the VTI training corpus above.
+        </p>
         {packs.length === 0 ? (
-          <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "36px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 14 }}>No rules registered yet — be the first to stake one.</div>
+          <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "36px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 14 }}>No packs registered yet.</div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 16 }}>
             {packs.map((p) => <PackCard pack={p} key={p.pack_id} />)}

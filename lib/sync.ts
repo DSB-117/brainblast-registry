@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "./supabase";
 import { fetchIncomingTransfers, BOUNTY_POOL_WALLET } from "./solana";
+import { provenTrapIds } from "./corpusIndex";
 
 interface PackIndexEntry {
   pack_id: string;
@@ -51,49 +52,74 @@ export async function syncPackRegistry(): Promise<{ synced: number } | { error: 
 // and matches them against pending_payment stake_submissions by memo_code,
 // flipping matches to 'staked'.
 export async function syncStakes(): Promise<
-  { matched: number; checked: number } | { error: string }
+  { matched: number; checked: number; slashed: number } | { error: string }
 > {
   const db = supabaseAdmin();
+
+  // 1. Confirm pending bonds: match an on-chain memo → 'staked' (active).
   const { data: pending, error } = await db
     .from("stake_submissions")
     .select("id, memo_code")
     .eq("status", "pending_payment");
-
-  if (error) {
-    return { error: error.message };
-  }
-  if (!pending || pending.length === 0) {
-    return { matched: 0, checked: 0 };
-  }
-
-  const byMemo = new Map(pending.map((p) => [p.memo_code, p.id] as const));
-
-  let transfers;
-  try {
-    transfers = await fetchIncomingTransfers(BOUNTY_POOL_WALLET);
-  } catch (e: any) {
-    return { error: e.message ?? String(e) };
-  }
+  if (error) return { error: error.message };
 
   let matched = 0;
-  for (const t of transfers) {
-    const stakeId = byMemo.get(t.memo ?? "");
-    if (stakeId === undefined) continue;
-
-    const { error: updateError } = await db
-      .from("stake_submissions")
-      .update({
-        status: "staked",
-        tx_signature: t.signature,
-        token_mint: t.mint,
-        token_amount: t.mint ? t.amount : t.amount / 1e9, // lamports -> SOL for native transfers
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", stakeId)
-      .eq("status", "pending_payment");
-
-    if (!updateError) matched++;
+  let checked = 0;
+  if (pending && pending.length > 0) {
+    const byMemo = new Map(pending.map((p) => [p.memo_code, p.id] as const));
+    let transfers;
+    try {
+      transfers = await fetchIncomingTransfers(BOUNTY_POOL_WALLET);
+    } catch (e: any) {
+      return { error: e.message ?? String(e) };
+    }
+    checked = transfers.length;
+    for (const t of transfers) {
+      const stakeId = byMemo.get(t.memo ?? "");
+      if (stakeId === undefined) continue;
+      const { error: updateError } = await db
+        .from("stake_submissions")
+        .update({
+          status: "staked",
+          tx_signature: t.signature,
+          token_mint: t.mint,
+          token_amount: t.mint ? t.amount : t.amount / 1e9, // lamports -> SOL for native
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", stakeId)
+        .eq("status", "pending_payment");
+      if (!updateError) matched++;
+    }
   }
 
-  return { matched, checked: transfers.length };
+  // 2. Slash pass: a bond whose VTI no longer reproduces loses its backing. Check
+  //    every active bond's trap_id against the live proven set. (Legacy pack-only
+  //    rows have no trap_id and are left untouched.)
+  let slashed = 0;
+  const { data: active } = await db
+    .from("stake_submissions")
+    .select("id, trap_id")
+    .eq("status", "staked")
+    .not("trap_id", "is", null);
+  if (active && active.length > 0) {
+    let proven: Set<string>;
+    try {
+      proven = await provenTrapIds();
+    } catch {
+      // Corpus unavailable — never slash on a read failure (fail safe, not closed).
+      return { matched, checked, slashed };
+    }
+    for (const bond of active) {
+      if (bond.trap_id && !proven.has(bond.trap_id)) {
+        const { error: slashErr } = await db
+          .from("stake_submissions")
+          .update({ status: "slashed", updated_at: new Date().toISOString() })
+          .eq("id", bond.id)
+          .eq("status", "staked");
+        if (!slashErr) slashed++;
+      }
+    }
+  }
+
+  return { matched, checked, slashed };
 }

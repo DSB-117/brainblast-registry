@@ -6,17 +6,20 @@ import StakePayment, { type StakeInfo } from "./StakePayment";
 import { TOKENS, BRAIN_DISCOUNT, type TokenSymbol } from "../lib/tokens";
 import { fetchUsdPrices } from "../lib/price";
 
-interface PackOption {
-  pack_id: string;
-  name: string;
+export interface BondableVtiOption {
+  trapId: string;
+  sdk: string;
+  class: string;
+  severity: string;
+  corroborationCount: number;
+  score: number;
 }
 
-export default function StakeSection({ packs }: { packs: PackOption[] }) {
+export default function StakeSection({ vtis }: { vtis: BondableVtiOption[] }) {
   const { publicKey } = useWallet();
 
-  const [packId, setPackId] = useState(packs[0]?.pack_id ?? "");
-  const [ruleId, setRuleId] = useState("");
-  const [stakeUsd, setStakeUsd] = useState("5");
+  const [trapId, setTrapId] = useState(vtis[0]?.trapId ?? "");
+  const [amountUsd, setAmountUsd] = useState("25");
   const [token, setToken] = useState<TokenSymbol>("BRAIN");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -24,37 +27,34 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
   const [price, setPrice] = useState<number | null>(null);
   const [priceError, setPriceError] = useState("");
 
-  // Live USD price for the selected token, so the registration form can show
-  // roughly how much the user is about to commit before they pay.
+  const selected = useMemo(() => vtis.find((v) => v.trapId === trapId) ?? null, [vtis, trapId]);
+
+  // Live USD price for the selected token, so the form can show roughly how much
+  // the user is about to commit before they pay.
   useEffect(() => {
     let cancelled = false;
     setPrice(null);
     setPriceError("");
-
     fetchUsdPrices([TOKENS[token].priceMint])
       .then((prices) => {
         if (cancelled) return;
         const p = prices[TOKENS[token].priceMint];
-        if (!p) {
-          setPriceError("Live price unavailable.");
-          return;
-        }
+        if (!p) return setPriceError("Live price unavailable.");
         setPrice(p);
       })
       .catch(() => {
         if (!cancelled) setPriceError("Live price lookup failed.");
       });
-
     return () => {
       cancelled = true;
     };
   }, [token]);
 
   const usdOwed = useMemo(() => {
-    const usd = Number(stakeUsd);
+    const usd = Number(amountUsd);
     if (!usd || usd <= 0) return null;
     return token === "BRAIN" ? usd * (1 - BRAIN_DISCOUNT) : usd;
-  }, [stakeUsd, token]);
+  }, [amountUsd, token]);
 
   const estimatedAmount = useMemo(() => {
     if (!price || price <= 0 || usdOwed === null) return null;
@@ -63,13 +63,13 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
 
   async function register() {
     if (!publicKey) return;
-    if (!packId.trim() || !ruleId.trim()) {
-      setError("Pack ID and rule ID are required.");
+    if (!trapId.trim()) {
+      setError("Pick a VTI to bond behind.");
       return;
     }
-    const usd = Number(stakeUsd);
+    const usd = Number(amountUsd);
     if (!usd || usd <= 0) {
-      setError("Stake amount must be a positive number.");
+      setError("Bond amount must be a positive number.");
       return;
     }
 
@@ -80,20 +80,16 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          pack_id: packId.trim(),
-          rule_id: ruleId.trim(),
-          author_wallet: publicKey.toBase58(),
-          stake_usd: usd,
+          trap_id: trapId.trim(),
+          bonder_wallet: publicKey.toBase58(),
+          amount_usd: usd,
         }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error ?? `request failed (${res.status})`);
-      }
+      if (!res.ok) throw new Error(data?.error ?? `request failed (${res.status})`);
       setStake({
         memo_code: data.memo_code,
-        pack_id: packId.trim(),
-        rule_id: ruleId.trim(),
+        trap_id: trapId.trim(),
         stake_usd: usd,
         status: "pending_payment",
         pay_to: data.pay_to,
@@ -108,44 +104,40 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
   return (
     <div className="card glass submission-card">
       <div className="card-header">
-        <h3>{stake ? "Step 2 — pay your stake" : "Register a rule"}</h3>
+        <h3>{stake ? "Step 2 — pay your bond" : "Bond behind a VTI"}</h3>
       </div>
 
       {!publicKey && (
         <p className="muted">
-          Connect a wallet (top left) to register a submission and pay your stake in SOL, USDC,
-          or $BRAIN (10% discount on the equivalent USD stake).
+          Connect a wallet (top left) to bond behind a proven VTI in SOL, USDC, or $BRAIN (10% off).
+          Optional — never required to contribute. The bond amplifies your dividend share and is
+          slashed if the VTI ever stops reproducing.
         </p>
       )}
 
-      {publicKey && !stake && (
+      {publicKey && !stake && vtis.length === 0 && (
+        <p className="muted">No proven VTIs in the corpus yet — nothing to bond behind.</p>
+      )}
+
+      {publicKey && !stake && vtis.length > 0 && (
         <div className="form-grid form-grid-wide">
-          <div className="row-2">
-            <label>
-              Pack ID
-              <input
-                value={packId}
-                onChange={(e) => setPackId(e.target.value)}
-                placeholder="e.g. spl-amount-scaling"
-                list="pack-ids"
-              />
-              <datalist id="pack-ids">
-                {packs.map((p) => (
-                  <option key={p.pack_id} value={p.pack_id}>
-                    {p.name}
-                  </option>
-                ))}
-              </datalist>
-            </label>
-            <label>
-              Rule ID
-              <input
-                value={ruleId}
-                onChange={(e) => setRuleId(e.target.value)}
-                placeholder="e.g. spl-token-amount-lamports-per-sol"
-              />
-            </label>
-          </div>
+          <label>
+            VTI
+            <select value={trapId} onChange={(e) => setTrapId(e.target.value)}>
+              {vtis.map((v) => (
+                <option key={v.trapId} value={v.trapId}>
+                  {v.trapId} — {v.severity} · score {v.score}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selected && (
+            <p className="field-hint" style={{ margin: 0 }}>
+              {selected.sdk} · {selected.class} · corroborated across {selected.corroborationCount}{" "}
+              repo{selected.corroborationCount === 1 ? "" : "s"} · dividend weight{" "}
+              <strong style={{ color: "var(--ink)" }}>{selected.score}</strong>/100.
+            </p>
+          )}
           <div className="row-2">
             <label>
               Pay with
@@ -159,29 +151,28 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
               </select>
             </label>
             <label>
-              Stake amount (USD)
+              Bond amount (USD)
               <input
                 type="number"
                 min="0"
                 step="any"
-                value={stakeUsd}
-                onChange={(e) => setStakeUsd(e.target.value)}
+                value={amountUsd}
+                onChange={(e) => setAmountUsd(e.target.value)}
               />
             </label>
           </div>
           <p className="field-hint" style={{ margin: 0 }}>
-            $5 suggested — covers indexer/gas costs and signals you'll maintain this rule. Stake
-            more for higher visibility once your pack graduates.
+            The amount is your confidence signal — it amplifies your dividend share, and the
+            reproduction gate slashes it if the VTI ever stops reproducing. On-chain settlement of
+            dividends is rolling out.
           </p>
           {usdOwed !== null && (
             <p className={token === "BRAIN" ? "token-discount" : "muted"} style={{ margin: 0 }}>
-              {token === "BRAIN" && (
-                <>You'll owe ~10% less than the ${stakeUsd || "0"} USD stake — </>
-              )}
+              {token === "BRAIN" && <>You&apos;ll owe ~10% less than the ${amountUsd || "0"} USD bond — </>}
               {estimatedAmount !== null ? (
                 <>
                   ≈ {estimatedAmount.toFixed(estimatedAmount < 1 ? 6 : 2)} {TOKENS[token].symbol} at
-                  today's price (~${usdOwed.toFixed(2)}).
+                  today&apos;s price (~${usdOwed.toFixed(2)}).
                 </>
               ) : priceError ? (
                 priceError
@@ -191,7 +182,7 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
             </p>
           )}
           <button className="button button-primary" onClick={register} disabled={busy}>
-            {busy ? "Registering…" : "Register & stake"}
+            {busy ? "Registering…" : "Register & bond"}
           </button>
           {error && <p className="status-line error">{error}</p>}
         </div>
@@ -200,7 +191,7 @@ export default function StakeSection({ packs }: { packs: PackOption[] }) {
       {stake && (
         <>
           <p className="muted" style={{ marginBottom: 16 }}>
-            Submission registered — memo code <span className="code-pill">{stake.memo_code}</span>
+            Bond registered — memo code <span className="code-pill">{stake.memo_code}</span>
           </p>
           <StakePayment stake={stake} initialToken={token} />
         </>

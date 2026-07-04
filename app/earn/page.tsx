@@ -1,25 +1,26 @@
 const WHY = [
   {
     c: "var(--emerald)",
-    title: "Earn on real-world usage",
-    body: "When your rule's RED→GREEN fix gets applied across real repos, it graduates and pays you from the $BRAIN bounty pool. You're paid for rules that catch real bugs in the wild — not for volume.",
+    title: "Paid when your trap is used",
+    body: "When labs license the corpus to evaluate and train models, value routes back to the contributors whose VTIs get used — weighted by corroboration × severity. You're paid for traps that catch real bugs in the wild, not for volume.",
   },
   {
     c: "var(--cyan)",
     title: "It compounds",
-    body: "A proven rule isn't a one-off bug report — it becomes a permanent VTI in the corpus buyers train and evaluate against. The rule you prove today keeps working as the market scales.",
+    body: "A proven trap isn't a one-off bug report — it becomes a permanent VTI in the corpus buyers train and evaluate against. As the fleet corroborates it across more repos, its score rises, and so does your share.",
   },
   {
     c: "var(--violet)",
     title: "Open and permissionless",
-    body: "No application, no gatekeeper, no one to email. If your submission clears the gate, it's in. You connect a wallet, stake behind your own rule, and the on-chain flow does the rest.",
+    body: "No application, no gatekeeper, no reviewer in the loop. If your submission clears the automated gate — RED→GREEN + secret scan + provenance — it's in. One command submits.",
   },
 ];
 
 const REQUIREMENTS = [
   "A real SDK or protocol bug — a way correct-looking code silently breaks.",
   "A minimal vulnerable snippet and the corrected fix, in TypeScript, Rust, or config.",
-  "The pair must reproduce RED→GREEN: the rule fails the vulnerable code and passes the fix.",
+  "The pair must reproduce RED→GREEN: the check fails the vulnerable code and passes the fix.",
+  "A commit-pinned source citation + the verbatim vulnerable line, so provenance can confirm the trap is real.",
   "No secrets — keypairs, base58 secrets, or mnemonics reject the whole submission automatically.",
   "Pinned to the SDK name and version the bug actually applies to.",
 ];
@@ -28,26 +29,26 @@ const STEPS = [
   {
     n: "01",
     title: "Prove it RED→GREEN",
-    body: "Author a rule that catches the bug (or extend a bundled pack) and prove it locally. The same oracle the dataset and benchmark use must FAIL your vulnerable fixture and PASS your fix. This is the gate — non-reproducing work never makes it in.",
+    body: "Author a candidate that catches the bug and prove it locally. The same oracle the dataset and benchmark use must FAIL your vulnerable fixture and PASS your fix. This is the gate — non-reproducing work never makes it in.",
     code: ["brainblast pack init ./my-pack --id my-sdk", "brainblast pack validate ./my-pack", "# vulnerable → RED   fixed → GREEN"],
   },
   {
     n: "02",
-    title: "Stake behind it",
-    body: "Connect a wallet on the staking app and register your pack and rule. You'll get a memo code and a USD-denominated stake amount — pay it in SOL, USDC, or $BRAIN (10% off). $5 is the suggested minimum: enough to cover indexer/gas and show you'll maintain the rule. No account, no approval step.",
-    code: null,
-    cta: { label: "Open the staking app", href: "/stake" },
+    title: "Cite the real source",
+    body: "Point at the exact commit the bug lives in — owner/repo@<sha>:path — and include the verbatim vulnerable line as evidence. On submission the server fetches that file at that commit and confirms the line is really there. A mutable branch is rejected; an invented finding can't clear it. This is what replaces human review.",
+    code: ['"provenance": {', '  "sourceRef": "owner/repo@<40-hex-sha>:path/to/file.ts",', '  "evidence": "skipPreflight: true"', "}"],
   },
   {
     n: "03",
-    title: "Graduate on real usage",
-    body: "Graduation is earned in the wild. When brainblast confirms your rule's RED→GREEN fix across 5 distinct repos within 90 days, it graduates — the corroboration signal that makes a rule worth a buyer's money.",
-    code: ["brainblast fix --apply   # records a graduation event", "# 5 distinct repos in 90 days → graduated"],
+    title: "Submit — no PR",
+    body: "One command posts your candidate straight into the corpus. The server re-checks it end to end — RED→GREEN + secret scan + provenance — and only records what passes. No fork, no branch, no reviewer, no waiting. (A pull request works too, if you prefer.)",
+    code: ["brainblast submit:vti --candidate ./my-trap.json", "brainblast submit:vti --candidate ./my-trap.json --dry-run   # check locally first"],
+    cta: { label: "Contribute a trap", href: "/stake" },
   },
   {
     n: "04",
-    title: "Earn — or reclaim",
-    body: "Graduated stakes feed the $BRAIN bounty pool that pays you as the author, and your confirmed findings become VTIs in the corpus buyers train and evaluate on. If a submission is rejected, you reclaim your stake — honest, reproducing work is the only thing that pays.",
+    title: "Earn on usage",
+    body: "Your confirmed findings become VTIs in the corpus, scored by severity × corroboration. As it's licensed for training and evaluation, value routes back to the contributors whose records are used. Optionally bond $BRAIN on a VTI to signal confidence — it's slashed if the trap ever stops reproducing.",
     code: null,
   },
 ];
@@ -75,11 +76,11 @@ export default function Earn() {
         <h1 style={{ fontSize: 42, fontWeight: 600, letterSpacing: "-0.035em", margin: 0, lineHeight: 1.08 }}>
           Get paid for the<br /><span className="grad-text">code errors you've already hit</span>
         </h1>
-        <p style={{ fontSize: 16.5, color: "var(--ink-2)", margin: "18px auto 30px", maxWidth: 610, lineHeight: 1.6 }}>
-          Turn a hard-won bug into a rule that proves RED→GREEN, stake behind it, and earn from the bounty pool when it catches the same bug across real repos. Open and self-serve — connect a wallet and go.
+        <p style={{ fontSize: 16.5, color: "var(--ink-2)", margin: "18px auto 30px", maxWidth: 620, lineHeight: 1.6 }}>
+          Turn a hard-won bug into a proven VTI — the vulnerable code, the fix, and a check that proves the difference. Prove it, cite the commit it lives in, and submit it in one command. Earn as labs license the corpus to train and evaluate on.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <a href="/stake" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600 }}>Open the staking app</a>
+          <a href="/stake" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600 }}>Contribute a trap</a>
           <a href="#how" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--glass-2)", color: "var(--ink)", fontSize: 14.5, fontWeight: 600, border: "1px solid var(--line-2)" }}>See how it works</a>
         </div>
       </div>
@@ -99,7 +100,7 @@ export default function Earn() {
       <div id="how" style={{ marginBottom: 68, scrollMarginTop: 84 }}>
         <div style={{ textAlign: "center", marginBottom: 34 }}>
           <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 10 }}>The process</div>
-          <h2 style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>From bug to bounty</h2>
+          <h2 style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>From bug to corpus</h2>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {STEPS.map((s) => (
@@ -143,9 +144,9 @@ export default function Earn() {
           <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 18px", lineHeight: 1.5 }}>Aligned so only honest, reproducing work earns.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {[
-              ["Stake to submit", "Bond your rule in SOL, USDC, or $BRAIN (10% off) — $5 suggested minimum. Reproduction is the anti-spam gate; a rejected submission reclaims its stake."],
-              ["Bounty pool", "Graduated stakes feed the $BRAIN bounty pool. When your rule graduates — 5 distinct repos, 90 days — it pays you as the author."],
-              ["Data dividend", "Your confirmed findings become VTIs in the corpus. As it's licensed for training and evaluation, value routes back to the contributors whose records are used."],
+              ["Data dividend", "Your confirmed findings become VTIs in the corpus, scored by severity × corroboration. As it's licensed for training and evaluation, value routes back to the contributors whose records are actually used — paid on usage, not volume."],
+              ["$BRAIN is optional", "You never need a token to contribute. $BRAIN is an optional rail for buyers — pay in it for a standing 10% discount — and the access tiers price in $BRAIN held. USDC we take at full price is bought back into $BRAIN and routed to contributors."],
+              ["Optional confidence bond", "Bond $BRAIN on a VTI you're sure of to signal confidence and amplify your share. The reproduction gate is the slash trigger — if the trap ever stops reproducing, the bond is slashed. Opt-in, never required to contribute."],
             ].map(([t, b]) => (
               <div key={t}>
                 <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}>
@@ -157,19 +158,19 @@ export default function Earn() {
             ))}
           </div>
           <p style={{ fontSize: 12, color: "var(--ink-4)", margin: "18px 0 0", lineHeight: 1.55, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
-            Staking, graduation, and the bounty pool are live and self-serve today. On-chain settlement of the data dividend on corpus usage is rolling out.
+            Contribution, the RED→GREEN + provenance gate, the corpus, and the $BRAIN confidence bond (registration + slash-on-non-reproduction) are live today. The on-chain <em>payout</em> of the data dividend is the remaining operational step, rolling out.
           </p>
         </Card>
       </div>
 
       {/* CTA */}
       <div className="glass" style={{ borderRadius: "var(--radius-xl)", padding: "36px 32px", textAlign: "center", border: "1px solid rgba(52,211,153,0.3)" }}>
-        <h2 style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 10px" }}>Stake your first rule</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 10px" }}>Contribute your first trap</h2>
         <p style={{ fontSize: 14.5, color: "var(--ink-2)", margin: "0 auto 22px", maxWidth: 500, lineHeight: 1.6 }}>
-          Participation is open — no application, no gatekeeper. Connect a wallet, register a rule, and you&apos;re in.
+          Participation is open — no application, no gatekeeper. Prove it RED→GREEN, cite the commit, and submit.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <a href="/stake" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600 }}>Open the staking app</a>
+          <a href="/stake" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600 }}>Contribute a trap</a>
           <a href="/docs" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--glass-2)", color: "var(--ink)", fontSize: 14.5, fontWeight: 600, border: "1px solid var(--line-2)" }}>Read the docs</a>
         </div>
       </div>
