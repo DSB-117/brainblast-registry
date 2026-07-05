@@ -75,13 +75,27 @@ function recordToCorpusVti(record: Record<string, any>): CorpusVti {
 export async function loadVerifiedSubmissions(): Promise<CorpusVti[]> {
   try {
     const db = supabaseAdmin();
-    const { data, error } = await db
-      .from("vtis")
-      .select("record")
-      .eq("proof_verified", true)
-      .order("created_at", { ascending: true });
-    if (error || !data) return [];
-    return data.map((r: any) => recordToCorpusVti(r.record ?? {})).filter((v) => v.trapId);
+    // PostgREST caps a single response at ~1000 rows. Without paging, the corpus
+    // silently froze at seed + the OLDEST 1000 proven submissions once we passed
+    // 1000 — every newer proven VTI was invisible on the dashboard/feed. Page
+    // through the full set explicitly (ascending, stable order) until a short page.
+    const PAGE = 1000;
+    const out: CorpusVti[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await db
+        .from("vtis")
+        .select("record")
+        .eq("proof_verified", true)
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error || !data || data.length === 0) break;
+      for (const r of data) {
+        const v = recordToCorpusVti((r as any).record ?? {});
+        if (v.trapId) out.push(v);
+      }
+      if (data.length < PAGE) break;
+    }
+    return out;
   } catch {
     return [];
   }
