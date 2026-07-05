@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabase";
 import { ipHash } from "../../../lib/fleetGuard";
 import { ingestVtiSubmission, toTeaser } from "../../../lib/vtiIngest";
+import { checkReproveAuth } from "../../../lib/submissions";
 
 // POST /api/vti — the git-less on-ramp for Verified Trap Instances (R11).
 //
@@ -45,15 +46,24 @@ export async function POST(req: NextRequest) {
   const db = supabaseAdmin();
   const hash = ipHash(req);
 
+  // Operator bypass: a submission bearing the trusted operator token (the same
+  // secret the re-prover uses) is a first-party bulk load, not an anonymous
+  // griefer — exempt it from the per-IP cap. Anonymous ingest stays capped, and
+  // provenance + RED→GREEN re-proof remain the real gates for BOTH paths, so the
+  // bypass cannot land unverified records.
+  const isOperator = checkReproveAuth(req.headers.get("authorization")) === "ok";
+
   // Rate limit BEFORE the provenance fetch (the expensive, outbound step).
-  const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count: recent } = await db
-    .from("vti_ingest_audit")
-    .select("id", { count: "exact", head: true })
-    .eq("ip_hash", hash)
-    .gte("recorded_at", sinceIso);
-  if ((recent ?? 0) >= HOURLY_SUBMIT_CAP) {
-    return NextResponse.json({ error: "rate limit: too many submissions this hour" }, { status: 429 });
+  if (!isOperator) {
+    const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recent } = await db
+      .from("vti_ingest_audit")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_hash", hash)
+      .gte("recorded_at", sinceIso);
+    if ((recent ?? 0) >= HOURLY_SUBMIT_CAP) {
+      return NextResponse.json({ error: "rate limit: too many submissions this hour" }, { status: 429 });
+    }
   }
 
   const finding = body && typeof body === "object" && "finding" in body ? body.finding : body;

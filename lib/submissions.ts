@@ -89,7 +89,7 @@ export async function loadVerifiedSubmissions(): Promise<CorpusVti[]> {
 
 // The re-proof queue: full findings still awaiting RED→GREEN. Server-secret gated
 // (the caller is the brainblast re-prover, not a browser) — it returns fixtures.
-export async function loadUnprovenQueue(limit = 100): Promise<QueuedFinding[]> {
+export async function loadUnprovenQueue(limit = 1000): Promise<QueuedFinding[]> {
   const db = supabaseAdmin();
   const { data, error } = await db
     .from("vtis")
