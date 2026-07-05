@@ -24,36 +24,40 @@ const OFFERS = [
     href: "/browse",
   },
   {
-    name: "Evaluate",
-    price: "Talk to us",
-    billing: "Recurring · per model",
-    tag: "Flagship",
-    grad: "var(--grad-brand)",
-    accent: "#34d399",
-    featured: true,
-    blurb: "We test your model against the corpus and score it.",
-    feat: ["A scorecard: which bugs it still ships", "Held-out suite, re-run on every release", "Priced per model — recurring"],
-    deliverable: "A written scorecard + machine-readable results, re-run on each model release.",
-    bestFor: "Teams shipping models or agents on top of these SDKs.",
-    cta: "Book an eval",
-    href: mailto("Brainblast eval — certify a model", "We'd like to evaluate a model/agent against the verified corpus.\n\nModel / agent:\nCadence (per release / quarterly):\nSDKs of interest:\n"),
-  },
-  {
-    name: "Train",
-    price: "Talk to us",
-    billing: "Annual license",
-    tag: "USD or $BRAIN",
+    name: "Curated lot",
+    price: "$2,500",
+    billing: "per lot · per year",
+    tag: "À la carte",
     grad: "var(--grad-violet)",
     accent: "#8b7bff",
     featured: false,
-    blurb: "License the full dataset to train or fine-tune on.",
-    feat: ["Every vulnerable + fixed fixture", "The continuous verified delta", "Pay in USD — or hold $BRAIN for 10% off"],
-    deliverable: "The full fixture dataset (versioned download) + the live verified delta feed, under a training license.",
-    bestFor: "Labs training or fine-tuning code models on real-world bugs.",
-    cta: "Request access",
+    blurb: "License just the slice that matches your stack.",
+    feat: ["Solana · EVM & DeFi · Web & Backend Security", "Every vulnerable + fixed fixture in the lot", "That lot's live verified delta — no holdback", "USD — or $BRAIN for 10% off ($2,250)"],
+    deliverable: "Any one curated lot — every vulnerable+fixed fixture in that slice, plus its live verified delta as the fleet finds more.",
+    bestFor: "Teams who only need the traps for the SDKs they actually ship on.",
+    cta: "Pick your lots",
+    href: "/access",
+  },
+  {
+    name: "Scale",
+    price: "$10,000",
+    billing: "per year · everything",
+    tag: "Best value",
+    grad: "var(--grad-brand)",
+    accent: "#34d399",
+    featured: true,
+    blurb: "The whole corpus — every lot, plus every future one.",
+    feat: ["Every curated lot, including all lots we add next", "Full corpus + live firehose, zero holdback", "Less than four à-la-carte lots — and it never stops growing", "USD — or $BRAIN for 10% off ($9,000)"],
+    deliverable: "The full fixture dataset (every lot) + the live verified firehose, under a training license that includes all future lots.",
+    bestFor: "Labs training or fine-tuning code models on the whole real-world-bug corpus.",
+    cta: "Get Scale",
     href: "/access",
   },
 ];
+
+const EVAL = {
+  href: mailto("Brainblast eval — certify a model", "We'd like to evaluate a model/agent against the verified corpus.\n\nModel / agent:\nCadence (per release / quarterly):\nSDKs of interest:\n"),
+};
 
 export default function Offers({ detailed = false }: { detailed?: boolean }) {
   return (
@@ -129,9 +133,27 @@ export default function Offers({ detailed = false }: { detailed?: boolean }) {
       </div>
 
       <Link
-        href={mailto("Sponsor scouting — point the fleet at our SDKs", "We'd like to sponsor verified-bug scouting for the SDKs we build on.\n\nSDKs / protocols:\nWhat you'd want covered:\n")}
+        href={EVAL.href}
         className="glass lift"
         style={{ display: "flex", alignItems: "center", gap: 16, borderRadius: "var(--radius-lg)", padding: "20px 24px", marginTop: 18 }}
+      >
+        <span style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(52,211,153,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+        </span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Evaluate your model or agent</div>
+          <div style={{ fontSize: 13.5, color: "var(--ink-3)" }}>We run it against a held-out slice of the corpus and hand you a scorecard of which bugs it still ships — re-run every release.</div>
+        </div>
+        <span style={{ fontSize: 13.5, color: "var(--ink-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          Book an eval
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </span>
+      </Link>
+
+      <Link
+        href={mailto("Sponsor scouting — point the fleet at our SDKs", "We'd like to sponsor verified-bug scouting for the SDKs we build on.\n\nSDKs / protocols:\nWhat you'd want covered:\n")}
+        className="glass lift"
+        style={{ display: "flex", alignItems: "center", gap: 16, borderRadius: "var(--radius-lg)", padding: "20px 24px", marginTop: 14 }}
       >
         <span style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(34,211,238,0.14)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4M11 8v6M8 11h6" /></svg>

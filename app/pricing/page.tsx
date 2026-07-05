@@ -11,19 +11,23 @@ const ANATOMY = [
 const FAQ = [
   {
     q: "So what am I actually buying?",
-    a: "Not access to a paywall — the catalog is open. You're buying leverage on top of it: either an evaluation (we run your model against a held-out slice of the corpus and hand you a scorecard), or a training license to the full fixture dataset and its live delta. The free tier is the whole catalog, readable by anyone.",
+    a: "A training license to curated slices of the corpus. The catalog is open to read; you pay for the fixtures — the vulnerable+fixed code and tests you train on. Buy the lots that match your stack at $2,500/yr each, or take everything (plus every future lot) with Scale at $10,000/yr.",
+  },
+  {
+    q: "What's in a lot, and how are they split?",
+    a: "Three curated lots today — Solana, EVM & DeFi, and Web & Backend Security — each a coherent slice of the corpus for one ecosystem. A lot ships every vulnerable+fixed fixture in that slice plus its live verified delta as the fleet finds more. Scale is every lot at once, including lots we add later.",
+  },
+  {
+    q: "When does buying lots beat Scale?",
+    a: "One or two lots ($2,500–$5,000) if you only ship on one ecosystem. Once you'd want three or more, Scale ($10,000) costs less than four à-la-carte lots and includes every future lot and the zero-holdback firehose — so most teams past two lots take Scale.",
   },
   {
     q: "What format does the data come in?",
-    a: "VTIs are JSON records with the code fixtures and tests as files, streamed as NDJSON. Browse pulls a sample; Train ships the full versioned dataset plus a feed of new verified records as the fleet finds them. Eval results come back as a written scorecard and machine-readable JSON.",
-  },
-  {
-    q: "Why is pricing “talk to us” instead of a number?",
-    a: "The corpus is early and growing fast. We size eval and training access to the coverage you actually need rather than pin a shelf price to a moving target — and we'll quote it honestly. As the corpus scales, standard self-serve tiers open up.",
+    a: "VTIs are JSON records with the code fixtures and tests as files, streamed as NDJSON. Browse pulls a receipt-only sample; a paid lot (or Scale) streams the full fixtures plus a live feed of new verified records as the fleet finds them.",
   },
   {
     q: "Do I need $BRAIN or a wallet to buy?",
-    a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount. Whatever you pay, we route value to the contributors whose records you use.",
+    a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount ($2,250/lot, $9,000 Scale). Whatever you pay, we route value to the contributors whose records you use.",
   },
 ];
 
@@ -34,7 +38,7 @@ export default function Pricing() {
         <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 14 }}>Pricing</div>
         <h1 style={{ fontSize: 40, fontWeight: 600, letterSpacing: "-0.035em", margin: 0 }}>Pay for leverage, not access.</h1>
         <p style={{ fontSize: 16, color: "var(--ink-2)", margin: "14px auto 0", maxWidth: 580, lineHeight: 1.6 }}>
-          The corpus itself is open — anyone can read and sample it, no signup. You pay for the two things that build on it: <span style={{ color: "var(--ink)" }}>evaluating your models against it</span>, or <span style={{ color: "var(--ink)" }}>licensing the full dataset to train on</span>.
+          The corpus itself is open — anyone can read and sample it, no signup. You pay for the fixtures you train on: <span style={{ color: "var(--ink)" }}>license the curated lots for your stack</span>, or <span style={{ color: "var(--ink)" }}>take the whole corpus with Scale</span>.
         </p>
       </div>
 
@@ -82,10 +86,10 @@ export default function Pricing() {
             <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(139,123,255,0.14)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
             </span>
-            <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Priced for where we are</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>À la carte, with a ceiling</h3>
           </div>
           <p style={{ fontSize: 13.5, color: "var(--ink-2)", margin: 0, lineHeight: 1.6 }}>
-            The corpus is early and growing fast. Eval and training access are quoted per engagement — scaled to the coverage you need — rather than a fixed shelf price on a moving target. As the corpus scales, standard tiers open up. Talk to us and we&apos;ll size it honestly.
+            Start with one lot for the ecosystem you ship on — $2,500/yr, no bundle to justify. Add more as you need them; the moment you&apos;d want three or more, Scale ($10,000) is the cheaper answer and includes every lot we add next. Low floor, clear ceiling, nothing wasted in between.
           </p>
         </div>
       </div>
