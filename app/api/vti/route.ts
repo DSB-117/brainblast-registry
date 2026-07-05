@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   // Idempotent, non-destructive insert on the trap_id primary key.
   const { error, data } = await db
     .from("vtis")
-    .upsert({ trap_id: result.trapId, record: result.record }, { onConflict: "trap_id", ignoreDuplicates: true })
+    .upsert({ trap_id: result.trapId, record: result.record, proof_verified: false }, { onConflict: "trap_id", ignoreDuplicates: true })
     .select("trap_id");
   if (error) return NextResponse.json({ accepted: false, error: error.message }, { status: 500 });
 

@@ -94,7 +94,10 @@ export async function loadUnprovenQueue(limit = 100): Promise<QueuedFinding[]> {
   const { data, error } = await db
     .from("vtis")
     .select("trap_id, record")
-    .eq("proof_verified", false)
+    // Treat NULL (freshly inserted, never re-proved) the same as an explicit
+    // false — otherwise `.eq(false)` silently drops every new submission, leaving
+    // it stuck forever (invisible to both the re-prover and the served corpus).
+    .or("proof_verified.is.null,proof_verified.eq.false")
     .order("created_at", { ascending: true })
     .limit(limit);
   if (error) throw new Error(error.message);
