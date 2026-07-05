@@ -1,4 +1,5 @@
 import Offers from "../../components/store/Offers";
+import { loadDashboard } from "../../lib/dashboardData";
 
 const ANATOMY = [
   { k: "SDK + exact version", v: "Pinned to the release the bug lives in — e.g. @solana/web3.js 1.95.3.", c: "var(--cyan)" },
@@ -31,7 +32,8 @@ const FAQ = [
   },
 ];
 
-export default function Pricing() {
+export default async function Pricing() {
+  const d = await loadDashboard();
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "72px 28px 20px", animation: "fade 0.4s ease" }}>
       <div style={{ textAlign: "center", marginBottom: 44 }}>
@@ -66,7 +68,7 @@ export default function Pricing() {
         </div>
       </div>
 
-      <Offers detailed />
+      <Offers detailed pricing={d.lotPricing} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 40 }}>
         <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 26 }}>

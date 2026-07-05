@@ -80,7 +80,7 @@ export default async function Home() {
           <h2 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>Browse it free. Train on it. Evaluate against it.</h2>
           <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "12px auto 0", maxWidth: 540 }}>The corpus is open. We charge for the two things that scale with it — certifying your models, and pointing the fleet at your stack.</p>
         </div>
-        <Offers />
+        <Offers pricing={d.lotPricing} />
       </section>
 
       {/* FEATURED CATALOG */}
