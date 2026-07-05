@@ -112,17 +112,26 @@ export async function loadVerifiedSubmissions(): Promise<CorpusVti[]> {
 // (the caller is the brainblast re-prover, not a browser) — it returns fixtures.
 export async function loadUnprovenQueue(limit = 1000): Promise<QueuedFinding[]> {
   const db = supabaseAdmin();
+  // BLOB-DRIVEN: a row is unproven until its stored record carries the real
+  // RED→GREEN receipt (record.proofVerified===true, written by the re-prover). We
+  // do NOT gate on the DB `proof_verified` column — it can drift out of sync with
+  // the receipt (observed: freshly-inserted rows leaving the column-based queue
+  // without ever being re-proved). Scan the most-recent rows (new submissions are
+  // always recent) and return those not yet truly proven. Same definition of
+  // "proven" as loadVerifiedSubmissions, so the two can never disagree.
   const { data, error } = await db
     .from("vtis")
     .select("trap_id, record")
-    // Treat NULL (freshly inserted, never re-proved) the same as an explicit
-    // false — otherwise `.eq(false)` silently drops every new submission, leaving
-    // it stuck forever (invisible to both the re-prover and the served corpus).
-    .or("proof_verified.is.null,proof_verified.eq.false")
-    .order("created_at", { ascending: true })
-    .limit(limit);
+    .order("created_at", { ascending: false })
+    .limit(1000);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r: any) => ({ trapId: r.trap_id, finding: findingFromRecord(r.record ?? {}) }));
+  const out: QueuedFinding[] = [];
+  for (const r of data ?? []) {
+    if ((r as any).record?.proofVerified === true) continue;
+    out.push({ trapId: (r as any).trap_id, finding: findingFromRecord((r as any).record ?? {}) });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 // Reconstruct the exact submittable Finding (what proveFinding needs) from a
