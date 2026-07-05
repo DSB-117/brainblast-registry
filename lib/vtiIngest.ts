@@ -36,6 +36,9 @@ const VETTED_CHECK_KINDS = new Set([
   "anchor-forbidden-account-type", "anchor-body-call-pattern",
   "anchor-cpi-unverified-program", "fee-configs-zero-or-missing",
   "compiles-against-sdk", "differential-io", "array-property-contains-forbidden-literal",
+  // Positional-argument analog of object-arg-property-forbidden-literal
+  // (new Connection(url, "processed"), getBalance(x, "processed"), createHash("md5")).
+  "positional-arg-forbidden-literal",
   // Multi-language static AST (tree-sitter) — Go + Solidity.
   "cst-struct-field-forbidden-literal", "cst-member-access-forbidden",
 ]);
