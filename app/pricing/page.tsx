@@ -15,7 +15,7 @@ const FAQ = [
   },
   {
     q: "What's in a lot, and how are they split?",
-    a: "Three curated lots today — Solana, EVM & DeFi, and Web & Backend Security — each a coherent slice of the corpus for one ecosystem. A lot ships every vulnerable+fixed fixture in that slice plus its live verified delta as the fleet finds more. Scale is every lot at once, including lots we add later.",
+    a: "Three curated lots today — Solana, EVM, and Web & Backend Security — each a coherent slice of the corpus for one ecosystem. A lot ships every vulnerable+fixed fixture in that slice plus its live verified delta as the fleet finds more. Scale is every lot at once, including lots we add later.",
   },
   {
     q: "When does buying lots beat Scale?",

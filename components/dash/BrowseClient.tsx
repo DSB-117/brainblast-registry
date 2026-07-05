@@ -13,15 +13,32 @@ const SEV_RANK: Record<string, number> = { critical: 3, high: 2, medium: 1, low:
 const SEV_ORDER = ["critical", "high", "medium", "low"];
 const PROOF_COLOR: Record<string, string> = { "static-checker": "#34d399", behavioral: "#22d3ee", compiler: "#8b7bff" };
 
+// Curated, sellable lots — the axis subscribers actually buy on. Order = display order.
+const LOTS: Record<string, { name: string; accent: string; blurb: string; sellable: boolean }> = {
+  solana: { name: "Solana", accent: "#a78bfa", blurb: "On-chain money & auth traps — commitment, preflight, royalties, slippage.", sellable: true },
+  "evm": { name: "EVM", accent: "#22d3ee", blurb: "Ethereum-stack traps — unconfirmed transactions, zero-slippage swaps, tx.origin auth.", sellable: true },
+  "web-backend": { name: "Web & Backend", accent: "#34d399", blurb: "TLS verification, JWT, sessions, headers, cloud storage, weak crypto.", sellable: true },
+  other: { name: "Other", accent: "#7c7c90", blurb: "Desktop & miscellaneous — bundled into Scale.", sellable: false },
+};
+const LOT_ORDER = ["solana", "evm", "web-backend", "other"];
+const LOT_PRICE = "$2,500/yr";
+const CAP = 12; // cards shown per group before "show all"
+
 function proofLabel(m: string) {
   return m === "static-checker" ? "static" : m;
 }
 function titleCase(s: string) {
   return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+function lotName(k: string) {
+  return LOTS[k]?.name ?? titleCase(k);
+}
+function lotAccent(k: string) {
+  return LOTS[k]?.accent ?? "var(--ink-3)";
+}
 
 type SortKey = "captured" | "severity" | "corroboration";
-type GroupKey = "severity" | "sdk" | "class" | "none";
+type GroupKey = "lot" | "severity" | "sdk" | "class" | "none";
 
 function countBy<T>(rows: T[], key: (r: T) => string) {
   const m = new Map<string, number>();
@@ -29,24 +46,50 @@ function countBy<T>(rows: T[], key: (r: T) => string) {
   return m;
 }
 
+// Thin stacked severity bar — the shape of a set of rows at a glance.
+function SevBar({ rows }: { rows: LedgerRow[] }) {
+  const counts = SEV_ORDER.map((s) => rows.filter((r) => r.severity === s).length);
+  const total = rows.length || 1;
+  return (
+    <div style={{ display: "flex", height: 4, borderRadius: 3, overflow: "hidden", background: "var(--glass-2)" }}>
+      {SEV_ORDER.map((s, i) =>
+        counts[i] ? <span key={s} title={`${counts[i]} ${s}`} style={{ width: `${(counts[i] / total) * 100}%`, background: SEV[s].c, opacity: 0.85 }} /> : null,
+      )}
+    </div>
+  );
+}
+
 export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdks: string[]; classes: string[] }) {
   const [q, setQ] = useState("");
+  const [lot, setLot] = useState<string | null>(null);
   const [sev, setSev] = useState<string | null>(null);
   const [cls, setCls] = useState<string | null>(null);
   const [proof, setProof] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("severity");
-  const [group, setGroup] = useState<GroupKey>("severity");
+  const [group, setGroup] = useState<GroupKey>("lot");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState<LedgerRow | null>(null);
 
   const proofs = ["static-checker", "behavioral", "compiler"];
 
   // Facet counts off the full corpus so the shape is always visible.
+  const lotCounts = useMemo(() => countBy(rows, (r) => r.lot), [rows]);
   const sevCounts = useMemo(() => countBy(rows, (r) => r.severity), [rows]);
   const clsCounts = useMemo(() => countBy(rows, (r) => r.class), [rows]);
   const proofCounts = useMemo(() => countBy(rows, (r) => r.proofMethod), [rows]);
 
+  // Per-lot summary for the overview strip.
+  const lotSummary = useMemo(() => {
+    return LOT_ORDER.filter((k) => lotCounts.get(k)).map((k) => {
+      const lr = rows.filter((r) => r.lot === k);
+      const topSdks = [...countBy(lr, (r) => r.sdk).entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map((e) => e[0]);
+      return { key: k, rows: lr, count: lr.length, topSdks };
+    });
+  }, [rows, lotCounts]);
+
   const filtered = useMemo(() => {
     const r = rows.filter((x) => {
+      if (lot && x.lot !== lot) return false;
       if (sev && x.severity !== sev) return false;
       if (cls && x.class !== cls) return false;
       if (proof && x.proofMethod !== proof) return false;
@@ -58,12 +101,16 @@ export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdk
       if (sort === "corroboration") return b.corroboration - a.corroboration;
       return (b.capturedAt ?? "").localeCompare(a.capturedAt ?? "");
     });
-  }, [rows, q, sev, cls, proof, sort]);
+  }, [rows, q, lot, sev, cls, proof, sort]);
 
-  // Build ordered groups of the filtered rows.
+  // When a lot is selected, default the grouping to class (finer drill-in) unless
+  // the user has picked something else. Otherwise group by lot.
+  const effectiveGroup: GroupKey = group;
+
   const groups = useMemo(() => {
-    if (group === "none") return [{ key: "All VTIs", color: "var(--emerald)", rows: filtered }];
-    const keyOf = (r: LedgerRow) => (group === "severity" ? r.severity : group === "sdk" ? r.sdk : r.class);
+    if (effectiveGroup === "none") return [{ key: "__all", label: "All VTIs", color: "var(--emerald)", rows: filtered }];
+    const keyOf = (r: LedgerRow) =>
+      effectiveGroup === "lot" ? r.lot : effectiveGroup === "severity" ? r.severity : effectiveGroup === "sdk" ? r.sdk : r.class;
     const buckets = new Map<string, LedgerRow[]>();
     for (const r of filtered) {
       const k = keyOf(r);
@@ -71,17 +118,25 @@ export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdk
       buckets.get(k)!.push(r);
     }
     let entries = [...buckets.entries()];
-    if (group === "severity") entries.sort((a, b) => SEV_RANK[b[0]] - SEV_RANK[a[0]]);
+    if (effectiveGroup === "lot") entries.sort((a, b) => LOT_ORDER.indexOf(a[0]) - LOT_ORDER.indexOf(b[0]));
+    else if (effectiveGroup === "severity") entries.sort((a, b) => SEV_RANK[b[0]] - SEV_RANK[a[0]]);
     else entries.sort((a, b) => b[1].length - a[1].length);
     return entries.map(([k, rs]) => ({
-      key: group === "severity" ? titleCase(k) : group === "class" ? titleCase(k) : k,
-      color: group === "severity" ? SEV[k]?.c ?? "var(--ink-3)" : "var(--emerald)",
+      key: k,
+      label:
+        effectiveGroup === "lot" ? lotName(k) : effectiveGroup === "class" || effectiveGroup === "severity" ? titleCase(k) : k,
+      color: effectiveGroup === "lot" ? lotAccent(k) : effectiveGroup === "severity" ? SEV[k]?.c ?? "var(--ink-3)" : "var(--emerald)",
       rows: rs,
     }));
-  }, [filtered, group]);
+  }, [filtered, effectiveGroup]);
 
-  const anyFilter = sev || cls || proof || q;
-  const reset = () => { setSev(null); setCls(null); setProof(null); setQ(""); };
+  const anyFilter = lot || sev || cls || proof || q;
+  const reset = () => { setLot(null); setSev(null); setCls(null); setProof(null); setQ(""); };
+  const pickLot = (k: string) => {
+    if (lot === k) { setLot(null); setGroup("lot"); }
+    else { setLot(k); setGroup("class"); setSel(null); }
+  };
+  const toggleExpand = (k: string) => setExpanded((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
 
   const FacetRow = ({ label, count, active, color, onClick }: { label: string; count: number; active: boolean; color?: string; onClick: () => void }) => (
     <button
@@ -113,105 +168,175 @@ export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdk
   const cardCols = sel ? "repeat(2,1fr)" : "repeat(auto-fill,minmax(240px,1fr))";
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: sel ? "200px 1fr 330px" : "200px 1fr", gap: 22, alignItems: "start" }}>
-      {/* Faceted sidebar */}
-      <aside style={{ position: "sticky", top: 84 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>Filters</span>
-          {anyFilter && <button onClick={reset} className="mono" style={{ fontSize: 11, color: "var(--ink-3)", background: "transparent", border: "none", cursor: "pointer" }}>reset</button>}
+    <div>
+      {/* Lot overview — the organizing element: how the corpus is packaged for subscribers. */}
+      <div style={{ marginBottom: 30 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "0 0 12px 2px", gap: 12 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ink-4)" }}>Curated lots · license à la carte, or take all with Scale</div>
+          <a href="/pricing" style={{ fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>Pricing →</a>
         </div>
-        <FacetGroup title="Severity">
-          {SEV_ORDER.filter((s) => sevCounts.get(s)).map((s) => (
-            <FacetRow key={s} label={titleCase(s)} count={sevCounts.get(s) ?? 0} active={sev === s} color={SEV[s].c} onClick={() => setSev(sev === s ? null : s)} />
-          ))}
-        </FacetGroup>
-        <FacetGroup title="Class">
-          {classes.map((c) => (
-            <FacetRow key={c} label={titleCase(c)} count={clsCounts.get(c) ?? 0} active={cls === c} onClick={() => setCls(cls === c ? null : c)} />
-          ))}
-        </FacetGroup>
-        <FacetGroup title="Proof method">
-          {proofs.filter((p) => proofCounts.get(p)).map((p) => (
-            <FacetRow key={p} label={proofLabel(p)} count={proofCounts.get(p) ?? 0} active={proof === p} color={PROOF_COLOR[p]} onClick={() => setProof(proof === p ? null : p)} />
-          ))}
-        </FacetGroup>
-      </aside>
-
-      {/* Results */}
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 22 }}>
-          <div className="glass" style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 200, height: 40, padding: "0 14px", borderRadius: 11 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the catalog" style={{ border: "none", outline: "none", background: "transparent", color: "var(--ink)", fontSize: 13.5, flex: 1, minWidth: 0, fontFamily: "var(--font-sans)" }} />
-          </div>
-          <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--ink-3)" }}>
-            Group
-            <select value={group} onChange={(e) => setGroup(e.target.value as GroupKey)} className="mono" style={{ fontSize: 12, height: 34, padding: "0 10px", borderRadius: 9, background: "var(--glass)", color: "var(--ink-2)", border: "1px solid var(--line)", cursor: "pointer" }}>
-              <option value="severity">Severity</option>
-              <option value="sdk">SDK</option>
-              <option value="class">Class</option>
-              <option value="none">None</option>
-            </select>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--ink-3)" }}>
-            Sort
-            <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="mono" style={{ fontSize: 12, height: 34, padding: "0 10px", borderRadius: 9, background: "var(--glass)", color: "var(--ink-2)", border: "1px solid var(--line)", cursor: "pointer" }}>
-              <option value="severity">Severity</option>
-              <option value="captured">Newest</option>
-              <option value="corroboration">Corroboration</option>
-            </select>
-          </label>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "48px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 14 }}>
-            No VTIs match these filters.{" "}
-            <button onClick={reset} className="mono" style={{ fontSize: 13, color: "var(--emerald)", background: "transparent", border: "none", cursor: "pointer" }}>reset</button>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
-            {groups.map((g) => (
-              <section key={g.key}>
-                {group !== "none" && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: g.color, boxShadow: `0 0 10px ${g.color}` }} />
-                    <h2 style={{ fontSize: 14.5, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>{g.key}</h2>
-                    <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)" }}>{g.rows.length}</span>
-                    <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  </div>
-                )}
-                <div style={{ display: "grid", gridTemplateColumns: cardCols, gap: 16 }}>
-                  {g.rows.map((r) => {
-                    const s = SEV[r.severity];
-                    const active = sel?.trapId === r.trapId;
-                    return (
-                      <button
-                        key={r.trapId}
-                        onClick={() => setSel(active ? null : r)}
-                        className={`glass lift ${active ? "lift-emerald" : ""}`}
-                        style={{ borderRadius: "var(--radius-lg)", padding: 20, textAlign: "left", cursor: "pointer", border: active ? "1px solid rgba(52,211,153,0.45)" : "1px solid var(--line)", fontFamily: "var(--font-sans)" }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                          <span style={{ fontSize: 11.5, fontWeight: 500, padding: "3px 9px", borderRadius: 999, color: s.c, background: s.bg, textTransform: "capitalize" }}>{r.severity}</span>
-                          <span className="mono" style={{ fontSize: 11, color: PROOF_COLOR[r.proofMethod] ?? "var(--ink-4)" }}>{proofLabel(r.proofMethod)}</span>
-                        </div>
-                        <div className="mono" style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, letterSpacing: "-0.01em", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.trapId}</div>
-                        <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{r.sdk} · {titleCase(r.class)}</div>
-                      </button>
-                    );
-                  })}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 14 }}>
+          {lotSummary.filter((l) => LOTS[l.key]?.sellable).map((l) => {
+            const meta = LOTS[l.key];
+            const active = lot === l.key;
+            return (
+              <button
+                key={l.key}
+                onClick={() => pickLot(l.key)}
+                className={`glass lift ${active ? "lift-emerald" : ""}`}
+                style={{
+                  borderRadius: "var(--radius-lg)", padding: 18, textAlign: "left", cursor: "pointer",
+                  border: `1px solid ${active ? meta.accent : "var(--line)"}`,
+                  boxShadow: active ? `0 18px 50px -28px ${meta.accent}` : "none",
+                  fontFamily: "var(--font-sans)", display: "flex", flexDirection: "column", gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: meta.accent, boxShadow: `0 0 10px ${meta.accent}`, flexShrink: 0 }} />
+                    <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em" }}>{meta.name}</span>
+                  </span>
+                  <span className="mono" style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>{l.count}</span>
                 </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        <div style={{ marginTop: 24, fontSize: 12.5, color: "var(--ink-3)" }}>
-          <span className="mono">{filtered.length} of {rows.length} VTIs</span>
+                <div style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.5, minHeight: 36 }}>{meta.blurb}</div>
+                <SevBar rows={l.rows} />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {l.topSdks.map((s) => (
+                    <span key={s} className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", background: "var(--glass-2)", padding: "2px 7px", borderRadius: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 130 }}>{s}</span>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
+                  <span className="mono" style={{ fontSize: 12, color: "var(--ink-2)" }}>{LOT_PRICE}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: active ? meta.accent : "var(--ink-3)" }}>{active ? "Viewing ↓" : "Browse →"}</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {sel && <Drawer row={sel} onClose={() => setSel(null)} />}
+      <div style={{ display: "grid", gridTemplateColumns: sel ? "200px 1fr 330px" : "200px 1fr", gap: 22, alignItems: "start" }}>
+        {/* Faceted sidebar */}
+        <aside style={{ position: "sticky", top: 84 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>Filters</span>
+            {anyFilter && <button onClick={reset} className="mono" style={{ fontSize: 11, color: "var(--ink-3)", background: "transparent", border: "none", cursor: "pointer" }}>reset</button>}
+          </div>
+          <FacetGroup title="Lot">
+            {LOT_ORDER.filter((k) => lotCounts.get(k)).map((k) => (
+              <FacetRow key={k} label={lotName(k)} count={lotCounts.get(k) ?? 0} active={lot === k} color={lotAccent(k)} onClick={() => pickLot(k)} />
+            ))}
+          </FacetGroup>
+          <FacetGroup title="Severity">
+            {SEV_ORDER.filter((s) => sevCounts.get(s)).map((s) => (
+              <FacetRow key={s} label={titleCase(s)} count={sevCounts.get(s) ?? 0} active={sev === s} color={SEV[s].c} onClick={() => setSev(sev === s ? null : s)} />
+            ))}
+          </FacetGroup>
+          <FacetGroup title="Class">
+            {classes.map((c) => (
+              <FacetRow key={c} label={titleCase(c)} count={clsCounts.get(c) ?? 0} active={cls === c} onClick={() => setCls(cls === c ? null : c)} />
+            ))}
+          </FacetGroup>
+          <FacetGroup title="Proof method">
+            {proofs.filter((p) => proofCounts.get(p)).map((p) => (
+              <FacetRow key={p} label={proofLabel(p)} count={proofCounts.get(p) ?? 0} active={proof === p} color={PROOF_COLOR[p]} onClick={() => setProof(proof === p ? null : p)} />
+            ))}
+          </FacetGroup>
+        </aside>
+
+        {/* Results */}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 22 }}>
+            <div className="glass" style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 200, height: 40, padding: "0 14px", borderRadius: 11 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the catalog" style={{ border: "none", outline: "none", background: "transparent", color: "var(--ink)", fontSize: 13.5, flex: 1, minWidth: 0, fontFamily: "var(--font-sans)" }} />
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--ink-3)" }}>
+              Group
+              <select value={group} onChange={(e) => setGroup(e.target.value as GroupKey)} className="mono" style={{ fontSize: 12, height: 34, padding: "0 10px", borderRadius: 9, background: "var(--glass)", color: "var(--ink-2)", border: "1px solid var(--line)", cursor: "pointer" }}>
+                <option value="lot">Lot</option>
+                <option value="class">Class</option>
+                <option value="sdk">SDK</option>
+                <option value="severity">Severity</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--ink-3)" }}>
+              Sort
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="mono" style={{ fontSize: 12, height: 34, padding: "0 10px", borderRadius: 9, background: "var(--glass)", color: "var(--ink-2)", border: "1px solid var(--line)", cursor: "pointer" }}>
+                <option value="severity">Severity</option>
+                <option value="captured">Newest</option>
+                <option value="corroboration">Corroboration</option>
+              </select>
+            </label>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: "48px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 14 }}>
+              No VTIs match these filters.{" "}
+              <button onClick={reset} className="mono" style={{ fontSize: 13, color: "var(--emerald)", background: "transparent", border: "none", cursor: "pointer" }}>reset</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+              {groups.map((g) => {
+                const isOpen = expanded.has(g.key) || g.rows.length <= CAP;
+                const shown = isOpen ? g.rows : g.rows.slice(0, CAP);
+                return (
+                  <section key={g.key}>
+                    {effectiveGroup !== "none" && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: g.color, boxShadow: `0 0 10px ${g.color}` }} />
+                        <h2 style={{ fontSize: 14.5, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>{g.label}</h2>
+                        <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)" }}>{g.rows.length}</span>
+                        <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                      </div>
+                    )}
+                    <div style={{ display: "grid", gridTemplateColumns: cardCols, gap: 16 }}>
+                      {shown.map((r) => {
+                        const s = SEV[r.severity];
+                        const active = sel?.trapId === r.trapId;
+                        return (
+                          <button
+                            key={r.trapId}
+                            onClick={() => setSel(active ? null : r)}
+                            className={`glass lift ${active ? "lift-emerald" : ""}`}
+                            style={{ borderRadius: "var(--radius-lg)", padding: 20, textAlign: "left", cursor: "pointer", border: active ? "1px solid rgba(52,211,153,0.45)" : "1px solid var(--line)", fontFamily: "var(--font-sans)" }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                              <span style={{ fontSize: 11.5, fontWeight: 500, padding: "3px 9px", borderRadius: 999, color: s.c, background: s.bg, textTransform: "capitalize" }}>{r.severity}</span>
+                              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span title={lotName(r.lot)} style={{ width: 7, height: 7, borderRadius: "50%", background: lotAccent(r.lot) }} />
+                                <span className="mono" style={{ fontSize: 11, color: PROOF_COLOR[r.proofMethod] ?? "var(--ink-4)" }}>{proofLabel(r.proofMethod)}</span>
+                              </span>
+                            </div>
+                            <div className="mono" style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, letterSpacing: "-0.01em", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.trapId}</div>
+                            <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{r.sdk} · {titleCase(r.class)}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {g.rows.length > CAP && (
+                      <button
+                        onClick={() => toggleExpand(g.key)}
+                        className="mono"
+                        style={{ marginTop: 14, fontSize: 12.5, color: "var(--ink-2)", background: "var(--glass)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 14px", cursor: "pointer" }}
+                      >
+                        {isOpen ? `Show fewer` : `Show all ${g.rows.length} in ${g.label} →`}
+                      </button>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={{ marginTop: 24, fontSize: 12.5, color: "var(--ink-3)" }}>
+            <span className="mono">{filtered.length} of {rows.length} VTIs{lot ? ` · ${lotName(lot)} lot` : ""}</span>
+          </div>
+        </div>
+
+        {sel && <Drawer row={sel} onClose={() => setSel(null)} />}
+      </div>
     </div>
   );
 }
@@ -229,6 +354,7 @@ function Drawer({ row, onClose }: { row: LedgerRow; onClose: () => void }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
         {[
+          ["lot", lotName(row.lot)],
           ["sdk", row.sdk],
           ["class", row.class.replace(/-/g, " ")],
           ["proof", proofLabel(row.proofMethod)],
@@ -253,7 +379,7 @@ function Drawer({ row, onClose }: { row: LedgerRow; onClose: () => void }) {
       <div style={{ borderRadius: 12, border: "1px dashed var(--line-2)", background: "var(--glass-2)", padding: "18px 16px", textAlign: "center" }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.7" style={{ margin: "0 auto 8px", display: "block" }} aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 018 0v3" /></svg>
         <p style={{ fontSize: 12.5, color: "var(--ink-2)", margin: "0 0 3px" }}>Fixture bodies are gated</p>
-        <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "0 0 13px", lineHeight: 1.5 }}>The vulnerable + fixed snippets unlock with a standard grant.</p>
+        <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "0 0 13px", lineHeight: 1.5 }}>The vulnerable + fixed snippets unlock with the <strong style={{ color: lotAccent(row.lot) }}>{lotName(row.lot)}</strong> lot — or Scale.</p>
         <a href="/access" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: "#03130c", background: "var(--grad-brand)", padding: "8px 16px", borderRadius: 10 }}>Get access</a>
       </div>
     </div>
