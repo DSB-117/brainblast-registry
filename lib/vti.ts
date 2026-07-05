@@ -21,34 +21,67 @@ function sources(): string[] {
     .filter(Boolean);
 }
 
+// ── Curated lot taxonomy ─────────────────────────────────────────────────────
+// The corpus is sold as curated slices, not one blob. Three à-la-carte lots
+// (individually priced) plus an "other" bucket that ships only inside the
+// all-corpus Scale bundle. A buyer's grant scopes to these names, so lot-scope
+// enforcement (server.ts) filters the feed to exactly what they bought.
+export type LotName = "solana" | "evm-defi" | "web-backend" | "other";
+
+export const SELLABLE_LOTS: LotName[] = ["solana", "evm-defi", "web-backend"];
+const LOT_ORDER: LotName[] = ["solana", "evm-defi", "web-backend", "other"];
+
+const RE_SOLANA = /solana|anchor|metaplex|spl-token|raydium|jupiter|orca|meteora|coral-xyz|web3\.js|jito|pyth|mpl-|bags|tensor|drift/;
+const RE_EVM = /\bviem\b|ethers|uniswap|1inch|\bsolidity\b|web3\.py|@0x|\bevm\b|wagmi|hardhat|foundry|permit2|aave|hop/;
+const RE_WEB = /jsonwebtoken|jose|\bjwt\b|express|cookie|session|helmet|cors|apollo|\brequest\b|\bpg\b|mysql|nodemailer|ioredis|\bws\b|mongo|\baws\b|\bs3\b|node:https|node:http|node:crypto|crypto\/tls|\btls\b|redis|kafka|undici|axios|fastify|koa|passport|nats|amqp|cassandra|ldap|mssql|sequelize|knex|elastic|playwright|puppeteer|libxml|next|http/;
+
+/** Which sellable lot a VTI belongs to (by SDK name, with a class fallback). */
+export function lotFor(vti: { sdk?: { name?: string | null } | null; class?: string | null }): LotName {
+  const n = (vti.sdk?.name ?? "").toLowerCase();
+  if (RE_SOLANA.test(n)) return "solana";
+  if (RE_EVM.test(n)) return "evm-defi";
+  if (RE_WEB.test(n)) return "web-backend";
+  // Class fallback for anything unmatched: slippage/royalty/unconfirmed lean DeFi,
+  // auth/verification lean web-backend; the rest is "other" (Scale-only).
+  const c = vti.class ?? "";
+  if (c === "missing-slippage-guard" || c === "silent-zero-revenue" || c === "unconfirmed-state") return "evm-defi";
+  if (c === "auth-bypass" || c === "missing-verification") return "web-backend";
+  return "other";
+}
+
 export async function loadLots(): Promise<ServerLot[]> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.lots;
-  const lots: ServerLot[] = [];
-  for (const url of sources()) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`failed to fetch VTI lot ${url}: ${res.status}`);
-    const text = await res.text();
-    // Skip any line that doesn't parse (e.g. a stray git conflict marker
-    // committed into the dataset) rather than throwing away the whole lot.
-    const vtis: CorpusVti[] = [];
-    for (const line of text.split("\n")) {
-      const t = line.trim();
-      if (!t) continue;
-      try {
-        vtis.push(JSON.parse(t) as CorpusVti);
-      } catch {
-        // skip the unparseable line
-      }
-    }
-    lots.push({ name: url.split("/").pop() ?? url, vtis });
-  }
 
-  // Fold in RED→GREEN-verified direct submissions (the /api/vti path) as their own
-  // lot, deduped against the git corpus by trapId — so an API-landed VTI appears in
-  // the served corpus with no PR, without ever double-counting one already in git.
-  const known = new Set(lots.flatMap((l) => l.vtis.map((v) => v.trapId)));
-  const submitted = (await loadVerifiedSubmissions()).filter((v) => !known.has(v.trapId));
-  if (submitted.length) lots.push({ name: "api-submissions", vtis: submitted });
+  // Gather the full corpus — published seed dataset(s) + every RED→GREEN-verified
+  // direct submission — deduped by trapId, then bucket into curated lots.
+  const all: CorpusVti[] = [];
+  const seen = new Set<string>();
+  const add = (v: CorpusVti) => {
+    if (v?.trapId && !seen.has(v.trapId)) { seen.add(v.trapId); all.push(v); }
+  };
+  for (const url of sources()) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue; // seed source unavailable — degrade to submissions only
+      for (const line of (await res.text()).split("\n")) {
+        const t = line.trim();
+        if (!t) continue;
+        try { add(JSON.parse(t) as CorpusVti); } catch { /* skip unparseable line */ }
+      }
+    } catch { /* network blip on a seed source — skip it, keep the rest */ }
+  }
+  try {
+    for (const v of await loadVerifiedSubmissions()) add(v);
+  } catch { /* submissions store blip must never take down the feed */ }
+
+  const buckets = new Map<LotName, CorpusVti[]>();
+  for (const v of all) {
+    const lot = lotFor(v);
+    const arr = buckets.get(lot);
+    if (arr) arr.push(v);
+    else buckets.set(lot, [v]);
+  }
+  const lots: ServerLot[] = LOT_ORDER.filter((k) => buckets.has(k)).map((k) => ({ name: k, vtis: buckets.get(k)! }));
 
   cache = { at: Date.now(), lots };
   return lots;
