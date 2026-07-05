@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleRequest, type Grant, type ServerRequest, type UsageRecord } from "./brainblast";
 import { loadLots } from "./vti";
+import { computePricing } from "./lots";
 import { meterPull } from "./ledger";
 
 export async function serve(req: NextRequest, path: string): Promise<NextResponse> {
@@ -53,6 +54,18 @@ export async function serve(req: NextRequest, path: string): Promise<NextRespons
     } catch (e: any) {
       // Fail-closed: the pull is not delivered if it can't be accounted.
       return NextResponse.json({ error: "metering failed", detail: e?.message ?? String(e) }, { status: 500 });
+    }
+  }
+
+  // Augment the public storefront with the live coverage-derived pricing model
+  // (8 lots + packages + Scale), so the catalog reflects what the site sells.
+  if (path === "/catalog" && resp.status === 200) {
+    try {
+      const body = JSON.parse(resp.body);
+      body.pricing = computePricing(lots.flatMap((l) => l.vtis) as unknown as Array<Record<string, unknown>>);
+      return NextResponse.json(body, { status: 200 });
+    } catch {
+      /* fall through to the raw body */
     }
   }
 

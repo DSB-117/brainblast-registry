@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { LedgerRow } from "../../lib/dashboardData";
+import { LOTS, LOT_ORDER, type LotName, type Pricing } from "../../lib/lots";
 
 const SEV: Record<string, { c: string; bg: string }> = {
   critical: { c: "#fb7185", bg: "rgba(251,113,133,0.14)" },
@@ -13,15 +14,8 @@ const SEV_RANK: Record<string, number> = { critical: 3, high: 2, medium: 1, low:
 const SEV_ORDER = ["critical", "high", "medium", "low"];
 const PROOF_COLOR: Record<string, string> = { "static-checker": "#34d399", behavioral: "#22d3ee", compiler: "#8b7bff" };
 
-// Curated, sellable lots — the axis subscribers actually buy on. Order = display order.
-const LOTS: Record<string, { name: string; accent: string; blurb: string; sellable: boolean }> = {
-  solana: { name: "Solana", accent: "#a78bfa", blurb: "On-chain money & auth traps — commitment, preflight, royalties, slippage.", sellable: true },
-  "evm": { name: "EVM", accent: "#22d3ee", blurb: "Ethereum-stack traps — unconfirmed transactions, zero-slippage swaps, tx.origin auth.", sellable: true },
-  "web-backend": { name: "Web & Backend", accent: "#34d399", blurb: "TLS verification, JWT, sessions, headers, cloud storage, weak crypto.", sellable: true },
-  other: { name: "Other", accent: "#7c7c90", blurb: "Desktop & miscellaneous — bundled into Scale.", sellable: false },
-};
-const LOT_ORDER = ["solana", "evm", "web-backend", "other"];
-const LOT_PRICE = "$2,500/yr";
+// Lot taxonomy comes from lib/lots (single source of truth). Prices come from the
+// live `pricing` prop (coverage-derived).
 const CAP = 12; // cards shown per group before "show all"
 
 function proofLabel(m: string) {
@@ -29,12 +23,6 @@ function proofLabel(m: string) {
 }
 function titleCase(s: string) {
   return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-function lotName(k: string) {
-  return LOTS[k]?.name ?? titleCase(k);
-}
-function lotAccent(k: string) {
-  return LOTS[k]?.accent ?? "var(--ink-3)";
 }
 
 type SortKey = "captured" | "severity" | "corroboration";
@@ -59,7 +47,12 @@ function SevBar({ rows }: { rows: LedgerRow[] }) {
   );
 }
 
-export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdks: string[]; classes: string[] }) {
+function lotName(k: string) { return LOTS[k as LotName]?.name ?? k; }
+function lotAccent(k: string) { return LOTS[k as LotName]?.accent ?? "var(--ink-3)"; }
+function usd(n: number) { return `$${n.toLocaleString()}`; }
+
+export default function BrowseClient({ rows, classes, pricing }: { rows: LedgerRow[]; sdks: string[]; classes: string[]; pricing: Pricing }) {
+  const priceOf = (lot: string) => pricing.lots.find((l) => l.lot === lot)?.price;
   const [q, setQ] = useState("");
   const [lot, setLot] = useState<string | null>(null);
   const [sev, setSev] = useState<string | null>(null);
@@ -118,7 +111,7 @@ export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdk
       buckets.get(k)!.push(r);
     }
     let entries = [...buckets.entries()];
-    if (effectiveGroup === "lot") entries.sort((a, b) => LOT_ORDER.indexOf(a[0]) - LOT_ORDER.indexOf(b[0]));
+    if (effectiveGroup === "lot") entries.sort((a, b) => LOT_ORDER.indexOf(a[0] as LotName) - LOT_ORDER.indexOf(b[0] as LotName));
     else if (effectiveGroup === "severity") entries.sort((a, b) => SEV_RANK[b[0]] - SEV_RANK[a[0]]);
     else entries.sort((a, b) => b[1].length - a[1].length);
     return entries.map(([k, rs]) => ({
@@ -206,13 +199,31 @@ export default function BrowseClient({ rows, classes }: { rows: LedgerRow[]; sdk
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
-                  <span className="mono" style={{ fontSize: 12, color: "var(--ink-2)" }}>{LOT_PRICE}</span>
+                  <span className="mono" style={{ fontSize: 12, color: "var(--ink-2)" }}>{priceOf(l.key) ? `${usd(priceOf(l.key)!)}/yr` : ""}</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: active ? meta.accent : "var(--ink-3)" }}>{active ? "Viewing ↓" : "Browse →"}</span>
                 </div>
               </button>
             );
           })}
         </div>
+
+        {/* Bundles — package + Scale, the upsell gradient. */}
+        <a href="/pricing" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, marginTop: 12, padding: "12px 16px", borderRadius: "var(--radius-lg)", border: "1px solid var(--line)", background: "var(--glass)" }}>
+          <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-4)" }}>Bundles</span>
+          {pricing.packages.map((pk) => (
+            <span key={pk.key} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: pk.accent }} />
+              <span style={{ color: "var(--ink-2)" }}>{pk.name}</span>
+              <span className="mono" style={{ color: "var(--ink)" }}>{usd(pk.price)}</span>
+            </span>
+          ))}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--emerald)", boxShadow: "0 0 8px var(--emerald)" }} />
+            <span style={{ color: "var(--ink-2)" }}>Scale · everything</span>
+            <span className="mono" style={{ color: "var(--ink)" }}>{usd(pricing.scale)}</span>
+          </span>
+          <span style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--ink-3)" }}>Pricing →</span>
+        </a>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: sel ? "200px 1fr 330px" : "200px 1fr", gap: 22, alignItems: "start" }}>

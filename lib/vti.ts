@@ -7,6 +7,7 @@
 
 import type { CorpusVti, ServerLot } from "./brainblast";
 import { loadVerifiedSubmissions } from "./submissions";
+import { lotFor, LOT_ORDER, type LotName } from "./lots";
 
 const DEFAULT_SOURCE =
   "https://raw.githubusercontent.com/DSB-117/brainblast/main/datasets/v0.1.0/full/vti.jsonl";
@@ -21,34 +22,8 @@ function sources(): string[] {
     .filter(Boolean);
 }
 
-// ── Curated lot taxonomy ─────────────────────────────────────────────────────
-// The corpus is sold as curated slices, not one blob. Three à-la-carte lots
-// (individually priced) plus an "other" bucket that ships only inside the
-// all-corpus Scale bundle. A buyer's grant scopes to these names, so lot-scope
-// enforcement (server.ts) filters the feed to exactly what they bought.
-export type LotName = "solana" | "evm" | "web-backend" | "other";
-
-export const SELLABLE_LOTS: LotName[] = ["solana", "evm", "web-backend"];
-const LOT_ORDER: LotName[] = ["solana", "evm", "web-backend", "other"];
-
-const RE_SOLANA = /solana|anchor|metaplex|spl-token|raydium|jupiter|orca|meteora|coral-xyz|web3\.js|jito|pyth|mpl-|bags|tensor|drift/;
-const RE_EVM = /\bviem\b|ethers|uniswap|1inch|\bsolidity\b|web3\.py|@0x|\bevm\b|wagmi|hardhat|foundry|permit2|aave|hop/;
-const RE_WEB = /jsonwebtoken|jose|\bjwt\b|express|cookie|session|helmet|cors|apollo|\brequest\b|\bpg\b|mysql|nodemailer|ioredis|\bws\b|mongo|\baws\b|\bs3\b|node:https|node:http|node:crypto|crypto\/tls|\btls\b|redis|kafka|undici|axios|fastify|koa|passport|nats|amqp|cassandra|ldap|mssql|sequelize|knex|elastic|playwright|puppeteer|libxml|next|http/;
-
-/** Which sellable lot a VTI belongs to (by SDK name, with a class fallback). */
-export function lotFor(vti: { sdk?: { name?: string | null } | null; class?: string | null }): LotName {
-  const n = (vti.sdk?.name ?? "").toLowerCase();
-  if (RE_SOLANA.test(n)) return "solana";
-  if (RE_EVM.test(n)) return "evm";
-  if (RE_WEB.test(n)) return "web-backend";
-  // Class fallback for an SDK name no regex matched: slippage/royalty/unconfirmed
-  // lean on-chain (bucket to EVM), auth/verification lean web-backend; the rest is
-  // "other" (Scale-only).
-  const c = vti.class ?? "";
-  if (c === "missing-slippage-guard" || c === "silent-zero-revenue" || c === "unconfirmed-state") return "evm";
-  if (c === "auth-bypass" || c === "missing-verification") return "web-backend";
-  return "other";
-}
+// Lot taxonomy + pricing now live in ./lots (single source of truth). lotFor,
+// LOT_ORDER, LotName are imported above.
 
 export async function loadLots(): Promise<ServerLot[]> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.lots;

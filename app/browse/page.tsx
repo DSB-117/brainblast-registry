@@ -16,7 +16,7 @@ export default async function Browse() {
           Every record is a proven RED→GREEN fix pinned to an exact SDK version. Metadata and proof receipts are open; fixture bodies unlock with a grant.
         </p>
       </div>
-      <BrowseClient rows={d.ledger} sdks={d.coverage.sdks} classes={classes} />
+      <BrowseClient rows={d.ledger} sdks={d.coverage.sdks} classes={classes} pricing={d.lotPricing} />
     </div>
   );
 }

@@ -15,6 +15,7 @@
 
 import { supabaseAdmin } from "./supabase";
 import type { CorpusVti } from "./brainblast/corpus";
+import { patternKey } from "./lots";
 
 // Shared auth for the re-prover endpoints (queue + verify). Whitespace-tolerant
 // (a trailing newline from pasting a secret is the classic silent mismatch), and
@@ -67,6 +68,10 @@ function recordToCorpusVti(record: Record<string, any>): CorpusVti {
     generatedTest: null,
     license: record.license ?? "contributor-grant-v1",
     capturedAt: record.capturedAt ?? null,
+    // Precomputed pattern signature (from the stored check binding) so the
+    // pricing engine can count distinct footgun patterns per lot without the
+    // full binding traveling to the client.
+    patternKey: patternKey({ binding: record.binding, trapId: record.trapId, class: record.class, sdk: record.sdk }),
   } as CorpusVti;
 }
 
