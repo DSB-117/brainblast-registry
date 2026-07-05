@@ -90,7 +90,14 @@ export async function loadVerifiedSubmissions(): Promise<CorpusVti[]> {
         .range(from, from + PAGE - 1);
       if (error || !data || data.length === 0) break;
       for (const r of data) {
-        const v = recordToCorpusVti((r as any).record ?? {});
+        const rec = (r as any).record ?? {};
+        // Trust gate: serve ONLY rows whose stored record carries the real
+        // RED→GREEN receipt (proofVerified===true, set by the brainblast-side
+        // re-prover). The DB column alone is not enough — recordToCorpusVti
+        // hardcodes a green receipt, so a column/blob drift must never let an
+        // un-reproved record reach a paid tier.
+        if (rec.proofVerified !== true) continue;
+        const v = recordToCorpusVti(rec);
         if (v.trapId) out.push(v);
       }
       if (data.length < PAGE) break;
