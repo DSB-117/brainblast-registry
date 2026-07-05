@@ -39,6 +39,10 @@ const VETTED_CHECK_KINDS = new Set([
   // Positional-argument analog of object-arg-property-forbidden-literal
   // (new Connection(url, "processed"), getBalance(x, "processed"), createHash("md5")).
   "positional-arg-forbidden-literal",
+  // ABSENCE modality — a trigger call whose required follow-up is missing in the
+  // same scope (viem sendTransaction/writeContract without waitForTransactionReceipt,
+  // ethers sendTransaction without .wait()). class: unconfirmed-state / staleness.
+  "required-followup-call-missing",
   // Multi-language static AST (tree-sitter) — Go + Solidity.
   "cst-struct-field-forbidden-literal", "cst-member-access-forbidden",
 ]);
