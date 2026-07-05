@@ -32,7 +32,7 @@ const OFFERS = [
     accent: "#8b7bff",
     featured: false,
     blurb: "License just the slice that matches your stack.",
-    feat: ["Solana · EVM & DeFi · Web & Backend Security", "Every vulnerable + fixed fixture in the lot", "That lot's live verified delta — no holdback", "USD — or $BRAIN for 10% off ($2,250)"],
+    feat: ["Solana · EVM · Web & Backend Security", "Every vulnerable + fixed fixture in the lot", "That lot's live verified delta — no holdback", "USD — or $BRAIN for 10% off ($2,250)"],
     deliverable: "Any one curated lot — every vulnerable+fixed fixture in that slice, plus its live verified delta as the fleet finds more.",
     bestFor: "Teams who only need the traps for the SDKs they actually ship on.",
     cta: "Pick your lots",
