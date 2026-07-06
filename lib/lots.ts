@@ -37,7 +37,7 @@ export const LOTS: Record<LotName, LotMeta> = {
   "transport-tls": { name: "Transport & TLS", accent: "#f472b6", blurb: "Disabled certificate verification across HTTP/DB/message clients (MITM).", sellable: true },
   "web-hardening": { name: "Web Hardening", accent: "#fbbf24", blurb: "Security headers, CSP, CSRF, GraphQL introspection, HTTP smuggling.", sellable: true },
   "cloud-storage": { name: "Cloud & Storage", accent: "#38bdf8", blurb: "Public-read ACLs, block-public-access off, storage & bucket misconfig.", sellable: true },
-  crypto: { name: "Crypto", accent: "#fb923c", blurb: "Broken hashes & ciphers — MD5, SHA-1, DES, weak key sizes.", sellable: true },
+  crypto: { name: "Cryptography", accent: "#fb923c", blurb: "Broken hashes & ciphers in app code — MD5, SHA-1, DES, weak key sizes.", sellable: true },
   "browser-desktop": { name: "Browser & Desktop", accent: "#c084fc", blurb: "TLS bypass & sandbox-off in Playwright, Puppeteer, Electron.", sellable: true },
   other: { name: "Other", accent: "#7c7c90", blurb: "Uncategorized — bundled into Scale only.", sellable: false },
 };
