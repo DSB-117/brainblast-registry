@@ -1,156 +1,156 @@
 "use client";
 
 import { useState } from "react";
+import { LOTS, PACKAGES, type LotName, type Pricing } from "../../lib/lots";
 
-const TIERS = [
-  { tier: "sample", min: 0, priceUsd: null as number | null, records: "5", fixtures: false, holdback: "7 days", color: "#2dd4bf" },
-  { tier: "standard", min: 100_000, priceUsd: 2500, records: "100", fixtures: true, holdback: "24 hours", color: "#34d399" },
-  { tier: "firehose", min: 1_000_000, priceUsd: 10000, records: "unlimited", fixtures: true, holdback: "none", color: "#8b7bff" },
-];
+function usd(n: number) { return `$${n.toLocaleString()}`; }
+const contact = process.env.NEXT_PUBLIC_ACCESS_EMAIL || "access@brainblast.tech";
 
-function tierForBrain(b: number) {
-  if (b >= 1_000_000) return "firehose";
-  if (b >= 100_000) return "standard";
-  return "sample";
-}
+export default function AccessClient({ pricing }: { pricing: Pricing }) {
+  const priceOf = (l: LotName) => pricing.lots.find((x) => x.lot === l)?.price ?? 0;
+  const allSellable = pricing.lots.map((l) => l.lot);
+  const [sel, setSel] = useState<Set<LotName>>(new Set());
 
-export default function AccessClient() {
-  const [brain, setBrain] = useState(150_000);
-  const eligible = tierForBrain(brain);
-  const cur = TIERS.find((t) => t.tier === eligible)!;
-  const next = TIERS.find((t) => t.min > brain);
-  const brainPrice = cur.priceUsd ? Math.round(cur.priceUsd * 0.9) : null;
+  const toggle = (l: LotName) => setSel((p) => { const n = new Set(p); n.has(l) ? n.delete(l) : n.add(l); return n; });
+  const setLots = (lots: LotName[]) => setSel(new Set(lots));
+  const clear = () => setSel(new Set());
 
-  const contact = process.env.NEXT_PUBLIC_ACCESS_EMAIL || "access@brainblast.tech";
+  const selected = [...sel];
+  const subtotal = selected.reduce((s, l) => s + priceOf(l), 0);
+
+  // Bundles whose lot set fully covers the selection — the buyer could take one
+  // of these instead. Suggest the cheapest that beats the à-la-carte subtotal.
+  const bundles = [
+    ...pricing.packages.map((p) => ({ key: p.key, name: p.name, lots: p.lots as LotName[], price: p.price })),
+    { key: "scale", name: "Scale", lots: allSellable, price: pricing.scale },
+  ];
+  const isScale = selected.length > 0 && allSellable.every((l) => sel.has(l));
+  const matchedBundle = bundles.find((b) => b.lots.length === selected.length && selected.every((l) => b.lots.includes(l)));
+  const cheaperBundle = selected.length > 0
+    ? bundles.filter((b) => selected.every((l) => b.lots.includes(l)) && b.price < subtotal).sort((a, b) => a.price - b.price)[0]
+    : undefined;
+  const total = matchedBundle ? matchedBundle.price : subtotal;
+  const brainTotal = Math.round(total * 0.9);
+
+  const orderLabel = matchedBundle ? `${matchedBundle.name} (${matchedBundle.lots.length} lots)` : selected.length ? `${selected.length} lot${selected.length > 1 ? "s" : ""}` : "";
   const requestHref =
-    `mailto:${contact}` +
-    `?subject=${encodeURIComponent(`Brainblast access — ${eligible} tier`)}` +
+    `mailto:${contact}?subject=${encodeURIComponent(`Brainblast access — ${orderLabel || "license"}`)}` +
     `&body=${encodeURIComponent(
-      `I'd like a ${eligible} grant for the Brainblast verified corpus.\n\n` +
-        `Wallet address (holds ≥ ${cur.min.toLocaleString()} $BRAIN):\n` +
-        `Intended use:\n`,
+      `I'd like a license for:\n  ${orderLabel}\n  lots: ${selected.join(", ") || "(none selected)"}\n  price: ${usd(total)}/yr (or ${usd(brainTotal)} in $BRAIN)\n\nBuyer / org:\nIntended use (train / eval):\n`,
     )}`;
+
+  const QuickPick = ({ name, accent, lots, price, tagline }: { name: string; accent: string; lots: LotName[]; price: number; tagline: string }) => {
+    const active = lots.length === selected.length && lots.every((l) => sel.has(l));
+    return (
+      <button onClick={() => setLots(lots)} className={`glass lift ${active ? "lift-emerald" : ""}`}
+        style={{ width: "100%", borderRadius: 14, padding: "14px 16px", textAlign: "left", cursor: "pointer", border: `1px solid ${active ? accent : "var(--line)"}`, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: accent, boxShadow: `0 0 8px ${accent}` }} />
+            <span style={{ fontSize: 14.5, fontWeight: 600 }}>{name}</span>
+          </span>
+          <span className="mono" style={{ fontSize: 14, fontWeight: 600 }}>{usd(price)}</span>
+        </div>
+        <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tagline}</span>
+      </button>
+    );
+  };
 
   return (
     <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 28 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500 }}>Check your tier</div>
+        <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500 }}>Configure your license</div>
         <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-3)", padding: "5px 11px", borderRadius: 999, border: "1px solid var(--line)" }}>grant issued in ~1 day</span>
       </div>
-      <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 6px" }}>What your $BRAIN unlocks</h2>
-      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "0 0 28px", maxWidth: 480, lineHeight: 1.6 }}>
-        Prove the $BRAIN you hold and we issue your signed access grant — no subscription, no lock-in. Fully self-serve issuance is rolling out.
+      <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Pick your lots</h2>
+      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "0 0 24px", maxWidth: 520, lineHeight: 1.6 }}>
+        License the slices that match your stack, take a package, or grab everything with Scale. Every paid lot ships full fixtures, the live delta, and zero holdback — we issue a signed grant.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, alignItems: "start" }}>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
-            <span style={{ fontSize: 13, color: "var(--ink-3)" }}>$BRAIN held</span>
-            <span className="mono" style={{ fontSize: 26, fontWeight: 600, color: cur.color }}>{brain.toLocaleString()}</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={1_500_000}
-            step={10_000}
-            value={brain}
-            onChange={(e) => setBrain(+e.target.value)}
-            style={{ width: "100%", accentColor: cur.color }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7 }}>
-            <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>0</span>
-            <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>100k · standard</span>
-            <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>1M · firehose</span>
-          </div>
+      {/* Quick-pick bundles */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 22 }}>
+        {pricing.packages.map((p) => (
+          <QuickPick key={p.key} name={p.name} accent={p.accent} lots={p.lots as LotName[]} price={p.price}
+            tagline={p.key === "web3" ? "Solana + EVM" : "All 6 web / infra lots"} />
+        ))}
+        <div style={{ gridColumn: "1 / -1" }}>
+          <QuickPick name="Scale — everything" accent="#34d399" lots={allSellable} price={pricing.scale} tagline="Every lot + all future lots · best value" />
+        </div>
+      </div>
 
-          <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 10 }}>
-            {TIERS.map((t) => {
-              const on = t.tier === eligible;
-              const reachable = brain >= t.min;
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, alignItems: "start" }}>
+        {/* À la carte lot picker */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+            <span style={{ fontSize: 12.5, color: "var(--ink-3)" }}>Or build à la carte — priced by coverage</span>
+            {selected.length > 0 && <button onClick={clear} className="mono" style={{ fontSize: 11, color: "var(--ink-3)", background: "transparent", border: "none", cursor: "pointer" }}>clear</button>}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {pricing.lots.map((l) => {
+              const meta = LOTS[l.lot];
+              const on = sel.has(l.lot);
               return (
-                <div
-                  key={t.tier}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 13,
-                    padding: "14px 16px",
-                    borderRadius: 13,
-                    border: `1px solid ${on ? t.color : "var(--line)"}`,
-                    background: on ? `${t.color}18` : "var(--glass-2)",
-                    opacity: reachable ? 1 : 0.5,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: reachable ? t.color : "var(--ink-4)", flexShrink: 0, boxShadow: on ? `0 0 10px ${t.color}` : "none" }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, textTransform: "capitalize" }}>{t.tier}</div>
-                    <div className="mono" style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
-                      {t.records} records · {t.fixtures ? "fixtures" : "receipts only"} · {t.holdback} holdback
-                    </div>
+                <button key={l.lot} onClick={() => toggle(l.lot)}
+                  style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 15px", borderRadius: 13, cursor: "pointer", textAlign: "left", border: `1px solid ${on ? meta.accent : "var(--line)"}`, background: on ? `${meta.accent}16` : "var(--glass-2)", transition: "all 0.12s" }}>
+                  <span style={{ width: 18, height: 18, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${on ? meta.accent : "var(--line-2)"}`, background: on ? meta.accent : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                    {on && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#03130c" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{meta.name}</div>
+                    <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 2 }}>{l.count} VTIs · {l.patterns} patterns · {l.sdks} SDKs</div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div className="mono" style={{ fontSize: 14, color: on ? t.color : "var(--ink-2)" }}>{t.priceUsd ? `$${t.priceUsd.toLocaleString()}` : "free"}</div>
-                    <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>≥ {t.min.toLocaleString()}</div>
-                  </div>
-                </div>
+                  <span className="mono" style={{ fontSize: 14, color: on ? meta.accent : "var(--ink-2)" }}>{usd(l.price)}</span>
+                </button>
               );
             })}
           </div>
         </div>
 
-        <div style={{ borderRadius: 16, border: `1px solid ${cur.color}55`, background: `${cur.color}12`, padding: 20, position: "sticky", top: 84 }}>
-          <div style={{ fontSize: 12, color: cur.color, marginBottom: 10, fontWeight: 500 }}>You qualify for</div>
-          <div style={{ fontSize: 28, fontWeight: 600, textTransform: "capitalize", color: cur.color, marginBottom: 6, letterSpacing: "-0.02em" }}>{eligible}</div>
-          <p style={{ fontSize: 13, color: "var(--ink-2)", margin: "0 0 18px", lineHeight: 1.55 }}>
-            {cur.priceUsd ? (
-              <>
-                <span className="mono" style={{ color: "var(--ink)" }}>${cur.priceUsd.toLocaleString()}</span> in USDC, or{" "}
-                <span className="mono" style={{ color: "var(--emerald)" }}>${brainPrice?.toLocaleString()}</span> in $BRAIN (10% off).
-              </>
-            ) : (
-              <>The open tier — {cur.records} receipt-only records, always free and anonymous.</>
-            )}
-          </p>
-
-          {next && (
-            <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 18, padding: "10px 12px", borderRadius: 10, background: "rgba(0,0,0,0.3)" }}>
-              <span className="mono" style={{ color: "var(--amber)" }}>+{(next.min - brain).toLocaleString()}</span> $BRAIN to reach <span style={{ textTransform: "capitalize" }}>{next.tier}</span>
-            </div>
+        {/* Order summary */}
+        <div style={{ borderRadius: 16, border: "1px solid var(--line)", background: "var(--glass-2)", padding: 20, position: "sticky", top: 84 }}>
+          <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12, fontWeight: 500 }}>Your license</div>
+          {selected.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 18px", lineHeight: 1.55 }}>Pick a package or select lots to see your price.</p>
+          ) : (
+            <>
+              <div style={{ fontSize: 26, fontWeight: 600, marginBottom: 2, letterSpacing: "-0.02em" }}>{usd(total)}<span style={{ fontSize: 13, color: "var(--ink-4)", fontWeight: 400 }}> / yr</span></div>
+              <p style={{ fontSize: 12.5, color: "var(--emerald)", margin: "0 0 12px" }}>{usd(brainTotal)} in $BRAIN (10% off)</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                {selected.map((l) => (
+                  <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
+                    <span style={{ color: "var(--ink-2)" }}>{LOTS[l].name}</span>
+                    <span className="mono" style={{ color: "var(--ink-3)" }}>{usd(priceOf(l))}</span>
+                  </div>
+                ))}
+                {matchedBundle && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, paddingTop: 6, borderTop: "1px solid var(--line)" }}>
+                    <span style={{ color: "var(--ink-3)" }}>{matchedBundle.name} bundle</span>
+                    <span className="mono" style={{ color: "var(--emerald)" }}>−{usd(subtotal - matchedBundle.price)}</span>
+                  </div>
+                )}
+              </div>
+              {!matchedBundle && cheaperBundle && (
+                <button onClick={() => setLots(cheaperBundle.lots)} style={{ width: "100%", fontSize: 12, color: "var(--amber)", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "9px 12px", marginBottom: 14, cursor: "pointer", lineHeight: 1.4 }}>
+                  Take <strong>{cheaperBundle.name}</strong> for {usd(cheaperBundle.price)} → save {usd(subtotal - cheaperBundle.price)}
+                </button>
+              )}
+            </>
           )}
 
           <div style={{ marginBottom: 14 }}>
             <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", marginBottom: 7 }}>pull your entitled delta</div>
             <div className="mono" style={{ fontSize: 11, color: "var(--emerald)", background: "rgba(0,0,0,0.4)", border: "1px solid var(--line)", borderRadius: 9, padding: "10px 12px", lineHeight: 1.7, overflowX: "auto" }}>
-              brainblast feed \<br />
-              &nbsp;&nbsp;--remote registry.brainblast.tech \<br />
-              &nbsp;&nbsp;--grant ./grant.json
+              brainblast feed \<br />&nbsp;&nbsp;--remote registry.brainblast.tech \<br />&nbsp;&nbsp;--grant ./grant.json
             </div>
           </div>
 
-          <a
-            href={cur.priceUsd ? requestHref : "/browse"}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              height: 44,
-              borderRadius: 12,
-              background: cur.priceUsd ? "var(--grad-brand)" : "var(--glass-2)",
-              color: cur.priceUsd ? "#03130c" : "var(--ink)",
-              border: cur.priceUsd ? "none" : "1px solid var(--line-2)",
-              fontSize: 14.5,
-              fontWeight: 600,
-            }}
-          >
-            {cur.priceUsd ? `Request ${eligible} access` : "Browse the free tier"}
+          <a href={selected.length ? requestHref : "/browse"}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 44, borderRadius: 12, background: selected.length ? "var(--grad-brand)" : "var(--glass-2)", color: selected.length ? "#03130c" : "var(--ink)", border: selected.length ? "none" : "1px solid var(--line-2)", fontSize: 14.5, fontWeight: 600 }}>
+            {selected.length ? "Request access" : "Browse the free tier"}
           </a>
-          {cur.priceUsd && (
-            <p className="mono" style={{ fontSize: 10, color: "var(--ink-4)", margin: "10px 0 0", textAlign: "center", lineHeight: 1.5 }}>
-              We issue your signed grant within a day. Self-serve on-chain settlement is rolling out.
-            </p>
-          )}
+          <p className="mono" style={{ fontSize: 10, color: "var(--ink-4)", margin: "10px 0 0", textAlign: "center", lineHeight: 1.5 }}>
+            USD or $BRAIN. We issue your signed grant within a day. Self-serve on-chain settlement is rolling out.
+          </p>
         </div>
       </div>
     </div>
