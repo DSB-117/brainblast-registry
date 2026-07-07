@@ -57,7 +57,7 @@ export const PACKAGES: PackageDef[] = [
 export const SCALE_DISCOUNT = 0.32; // vs the summed à-la-carte lots
 
 // ── Classifier ───────────────────────────────────────────────────────────────
-const RE_SOLANA = /solana|anchor|metaplex|spl-token|raydium|jupiter|orca|meteora|coral-xyz|web3\.js|jito|pyth|mpl-|bags|tensor|drift/;
+const RE_SOLANA = /solana|anchor|metaplex|spl-token|raydium|jupiter|orca|meteora|coral-xyz|web3\.js|jito|pyth|mpl-|bags|tensor|drift|switchboard/;
 const RE_EVM = /\bviem\b|ethers|uniswap|1inch|\bsolidity\b|web3\.py|@0x|\bevm\b|wagmi|hardhat|foundry|permit2|aave|hop|sdk-core|v3-sdk/;
 
 /** Which curated lot a VTI belongs to. Priority-ordered to resolve overlaps. */
@@ -72,9 +72,15 @@ export function lotFor(vti: { sdk?: { name?: string | null } | null; class?: str
   if (/helmet|apollo|\bcors\b|node:http\b|graphql|csurf/.test(n)) return "web-hardening";
   if (/node:https|crypto\/tls|\btls\b|\brequest\b|undici|axios|got|node-fetch|\bpg\b|mysql|ioredis|\bredis\b|mongo|kafka|\bnats\b|amqp|cassandra|ldap|mssql|tedious|sequelize|knex|elastic|\bws\b|\bssl\b/.test(n)) return "transport-tls";
   if (/express|fastify|\bkoa\b|\bnext\b|\bhttp\b/.test(n)) return "auth-sessions"; // generic web frameworks
-  // class fallback for an SDK no regex matched
+  // class fallback for an SDK no regex matched. Every trap class routes to a
+  // sellable lot so nothing valuable falls into the unsellable "other" bucket:
+  //  - staleness/slippage/revenue/unconfirmed → evm (DeFi / oracle / Ethereum-stack;
+  //    the Solana instances of these already matched RE_SOLANA above)
+  //  - immutable/wrong-constant → solana (dominated by Metaplex metadata locks &
+  //    LAMPORTS_PER_SOL decimal-scaling; keeps each class coherent in one lot)
   const c = vti.class ?? "";
-  if (c === "missing-slippage-guard" || c === "silent-zero-revenue" || c === "unconfirmed-state") return "evm";
+  if (c === "missing-slippage-guard" || c === "silent-zero-revenue" || c === "unconfirmed-state" || c === "unchecked-staleness") return "evm";
+  if (c === "immutable-after-deploy" || c === "wrong-constant") return "solana";
   if (c === "auth-bypass") return "auth-sessions";
   if (c === "missing-verification") return "crypto";
   return "other";
