@@ -12,15 +12,15 @@ const ANATOMY = [
 const FAQ = [
   {
     q: "So what am I actually buying?",
-    a: "A training license to curated slices of the corpus. The catalog is open to read; you pay for the fixtures — the vulnerable+fixed code and tests you train on. Buy the lots that match your stack at $2,500/yr each, or take everything (plus every future lot) with Scale at $10,000/yr.",
+    a: "A training license to curated slices of the corpus. The catalog is open to read; you pay for the fixtures — the vulnerable+fixed code and tests you train on. Buy the lots that match your stack — each priced by its coverage — or take everything, including every future lot, with Scale.",
   },
   {
     q: "What's in a lot, and how are they split?",
-    a: "Three curated lots today — Solana, EVM, and Web & Backend Security — each a coherent slice of the corpus for one ecosystem. A lot ships every vulnerable+fixed fixture in that slice plus its live verified delta as the fleet finds more. Scale is every lot at once, including lots we add later.",
+    a: "Each lot is a coherent slice of the corpus for one ecosystem or security domain — the blockchain lots (Solana, EVM), plus auth & sessions, transport/TLS, web hardening, cloud & storage, cryptography, and browser/desktop. A lot ships every vulnerable+fixed fixture in that slice plus its live verified delta as the fleet finds more. Scale is every lot at once, including lots we add later.",
   },
   {
     q: "When does buying lots beat Scale?",
-    a: "One or two lots ($2,500–$5,000) if you only ship on one ecosystem. Once you'd want three or more, Scale ($10,000) costs less than four à-la-carte lots and includes every future lot and the zero-holdback firehose — so most teams past two lots take Scale.",
+    a: "One or two lots if you only ship on a single ecosystem. Once you'd want several, Scale is cheaper than buying them à la carte and includes every future lot plus the zero-holdback firehose — so most teams past a couple of lots take Scale.",
   },
   {
     q: "What format does the data come in?",
@@ -28,7 +28,7 @@ const FAQ = [
   },
   {
     q: "Do I need $BRAIN or a wallet to buy?",
-    a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount ($2,250/lot, $9,000 Scale). Whatever you pay, we route value to the contributors whose records you use.",
+    a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount on any lot or Scale. Whatever you pay, we route value to the contributors whose records you use.",
   },
 ];
 

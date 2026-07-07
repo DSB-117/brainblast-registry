@@ -227,8 +227,10 @@ export default function BrowseClient({ rows, classes, pricing }: { rows: LedgerR
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: sel ? "200px 1fr 330px" : "200px 1fr", gap: 22, alignItems: "start" }}>
-        {/* Faceted sidebar */}
-        <aside style={{ position: "sticky", top: 84 }}>
+        {/* Faceted sidebar — scrolls independently so a tall filter list can't
+            get stranded past the viewport bottom (needs its own overflow, not
+            the page's, since it's position:sticky). */}
+        <aside className="scrolly" style={{ position: "sticky", top: 84, maxHeight: "calc(100vh - 104px)", overflowY: "auto", overflowX: "hidden", paddingRight: 6 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>Filters</span>
             {anyFilter && <button onClick={reset} className="mono" style={{ fontSize: 11, color: "var(--ink-3)", background: "transparent", border: "none", cursor: "pointer" }}>reset</button>}

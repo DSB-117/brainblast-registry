@@ -115,6 +115,19 @@ export default function Offers({ detailed = false, pricing }: { detailed?: boole
               </Link>
             );
           })}
+          {pricing.otherCount > 0 && (
+            <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 18, display: "flex", flexDirection: "column", gap: 8, border: "1px dashed var(--line)", opacity: 0.6, cursor: "default" }} title="Uncategorized traps — SDKs that don't map to a curated lot. Not sold à la carte; included in Scale.">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: LOTS.other.accent, flexShrink: 0 }} />
+                  <span style={{ fontSize: 14.5, fontWeight: 600 }}>{LOTS.other.name}</span>
+                </span>
+                <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)" }}>Scale-only</span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-3)", lineHeight: 1.5, minHeight: 34 }}>{LOTS.other.blurb}</div>
+              <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)" }}>{pricing.otherCount} VTIs · not sold à la carte</div>
+            </div>
+          )}
         </div>
       </div>
 
