@@ -68,6 +68,33 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* WHY IT MATTERS — the value/power, before the buying options */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "68px 28px 8px" }}>
+        <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 660, marginLeft: "auto", marginRight: "auto" }}>
+          <div style={{ fontSize: 13, color: "var(--violet)", fontWeight: 500, marginBottom: 14, letterSpacing: "0.02em" }}>Why it matters</div>
+          <h2 style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", margin: 0, lineHeight: 1.15 }}>The bugs AI ships are specific. So is the proof.</h2>
+          <p style={{ fontSize: 15.5, color: "var(--ink-2)", margin: "14px auto 0", maxWidth: 560, lineHeight: 1.6 }}>
+            Coding agents confidently emit the same SDK integration footguns — insecure defaults, zeroed slippage guards, skipped signature checks, stale oracle reads — that compile, pass review, and quietly do the wrong thing. Brainblast is the corpus of exactly those failures, each one machine-proven.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+          {[
+            { c: "var(--rose)", h: "The failure mode that costs you", b: "Not generic bugs — the precise integration mistakes models make: an insecure default, a zeroed fee, a swap with no slippage floor, a price used without a freshness check. Captured, versioned, and named before they reach prod." },
+            { c: "var(--emerald)", h: "Proof you can't game", b: "Every record goes RED→GREEN through a machine oracle — the vulnerable code fails, the fix passes, and anyone can replay it. 100% reproduced, no answer key. A model can't fake having learned it." },
+            { c: "var(--violet)", h: "A corpus that compounds", b: "An autonomous fleet finds and verifies new traps across the SDKs teams actually ship — fresh and growing, not a stale dump. And when a contributor's trap lands, they earn from the records buyers use." },
+          ].map((x) => (
+            <div key={x.h} className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 26 }}>
+              <span style={{ display: "block", width: 26, height: 3, borderRadius: 2, background: x.c, marginBottom: 15, boxShadow: `0 0 10px ${x.c}` }} />
+              <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 10px" }}>{x.h}</h3>
+              <p style={{ fontSize: 13, color: "var(--ink-2)", margin: 0, lineHeight: 1.6 }}>{x.b}</p>
+            </div>
+          ))}
+        </div>
+        <p style={{ textAlign: "center", fontSize: 14.5, color: "var(--ink-2)", margin: "26px auto 0", maxWidth: 620, lineHeight: 1.6 }}>
+          <span style={{ color: "var(--ink)", fontWeight: 500 }}>Train</span> models that write correct integration code the first time, or <span style={{ color: "var(--ink)", fontWeight: 500 }}>evaluate</span> any model against a benchmark it hasn&apos;t seen.
+        </p>
+      </section>
+
       {/* THREE WAYS IN */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 28px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
