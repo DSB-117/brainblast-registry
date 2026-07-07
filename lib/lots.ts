@@ -134,6 +134,7 @@ export interface Pricing {
   packages: PackageStat[];
   scale: number;
   scaleListPrice: number;
+  otherCount: number; // VTIs in the unsellable "other" lot (Scale-only) — so the à-la-carte grid reconciles with the corpus total
 }
 
 function round100(n: number) { return Math.round(n / 100) * 100; }
@@ -176,5 +177,5 @@ export function computePricing(vtis: Array<Record<string, any>>): Pricing {
   });
 
   const scaleList = lots.reduce((s, l) => s + l.price, 0);
-  return { lots, packages, scale: round100(scaleList * (1 - SCALE_DISCOUNT)), scaleListPrice: scaleList };
+  return { lots, packages, scale: round100(scaleList * (1 - SCALE_DISCOUNT)), scaleListPrice: scaleList, otherCount: (byLot.get("other") ?? []).length };
 }

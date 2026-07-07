@@ -30,12 +30,19 @@ export default async function Coverage() {
   const rows: (TrapClass | { gap: TrapClass })[] = [...d.coverage.classes, ...d.coverage.uncovered.slice(0, 1).map((g) => ({ gap: g }))];
   const classesTotal = d.totals.classes + d.coverage.uncovered.length;
   const sdks = d.coverage.sdks;
+  // Rank SDKs by total corroborating instances and show the densest ones — a full
+  // 58-column matrix crushes labels and numbers together. The long tail (mostly 1–2
+  // instances in a single class) is summarized below instead.
+  const sdkTotals = new Map<string, number>();
+  for (const c of d.coverage.cells) sdkTotals.set(c.sdk, (sdkTotals.get(c.sdk) ?? 0) + c.count);
+  const topSdks = [...sdks].sort((a, b) => (sdkTotals.get(b) ?? 0) - (sdkTotals.get(a) ?? 0)).slice(0, 22);
+  const tailCount = sdks.length - topSdks.length;
+  const maxCell = Math.max(...d.coverage.cells.map((c) => c.count), 1);
 
   const stats = [
     { l: "Error classes covered", v: `${d.totals.classes}`, sub: `of ${classesTotal}`, c: "#34d399" },
     { l: "SDKs covered", v: `${d.totals.sdks}`, sub: "and growing", c: "#22d3ee" },
     { l: "Populated cells", v: `${d.coverage.cells.length}`, sub: "class × sdk pairs", c: "#8b7bff" },
-    { l: "Open classes", v: `${d.coverage.uncovered.length}`, sub: "fleet is hunting", c: "#fbbf24" },
   ];
 
   return (
@@ -48,7 +55,7 @@ export default async function Coverage() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 16 }}>
         {stats.map((s) => (
           <div key={s.l} className="glass" style={{ padding: "20px 22px", borderRadius: "var(--radius-lg)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -68,11 +75,12 @@ export default async function Coverage() {
           <div style={{ fontSize: 13, color: "var(--amber)", fontWeight: 500 }}>Class × SDK matrix</div>
           <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>cell value = corroborating instances</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: `140px repeat(${sdks.length}, minmax(0,1fr))`, gap: 4, alignItems: "center" }}>
+        <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+        <div style={{ display: "grid", gridTemplateColumns: `176px repeat(${topSdks.length}, minmax(34px,1fr))`, gap: 5, alignItems: "center", minWidth: 1000 }}>
           <div />
-          {sdks.map((s) => (
-            <div key={s} className="mono" style={{ fontSize: 8.5, color: "var(--ink-4)", textAlign: "center", height: 42, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-              <span style={{ transform: "rotate(-42deg)", transformOrigin: "center", whiteSpace: "nowrap" }}>{s}</span>
+          {topSdks.map((s) => (
+            <div key={s} className="mono" style={{ fontSize: 10, color: "var(--ink-3)", height: 118, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+              <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", letterSpacing: "0.02em" }}>{s}</span>
             </div>
           ))}
           {rows.map((row, ri) => {
@@ -81,22 +89,28 @@ export default async function Coverage() {
             const color = CLASS_COLOR[cls] ?? "var(--ink-2)";
             return (
               <div key={ri} style={{ display: "contents" }}>
-                <div className="mono" style={{ fontSize: 10.5, color: isGap ? "var(--amber)" : "var(--ink-2)", textAlign: "right", paddingRight: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label(cls)}</div>
-                {sdks.map((sdk) => {
+                <div className="mono" style={{ fontSize: 11.5, color: isGap ? "var(--amber)" : "var(--ink-2)", textAlign: "right", paddingRight: 12, whiteSpace: "nowrap" }}>{label(cls)}</div>
+                {topSdks.map((sdk) => {
                   const v = map.get(`${cls}|${sdk}`);
-                  if (isGap) return <div key={sdk} style={{ height: 26, border: "1px dashed rgba(251,191,36,0.4)", borderRadius: 5, animation: "livepulse 2.6s infinite" }} />;
+                  if (isGap) return <div key={sdk} style={{ height: 30, border: "1px dashed rgba(251,191,36,0.4)", borderRadius: 6, animation: "livepulse 2.6s infinite" }} />;
                   if (v)
                     return (
-                      <div key={sdk} title={`${label(cls)} × ${sdk} = ${v}`} className="mono" style={{ height: 26, background: color, opacity: v > 1 ? 1 : 0.62, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, color: "#07070e", fontWeight: 600 }}>{v}</div>
+                      <div key={sdk} title={`${label(cls)} × ${sdk} = ${v}`} className="mono" style={{ height: 30, background: color, opacity: 0.32 + 0.68 * (v / maxCell), borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, color: "#07070e", fontWeight: 700 }}>{v}</div>
                     );
-                  return <div key={sdk} style={{ height: 26, background: "var(--glass-2)", borderRadius: 5 }} />;
+                  return <div key={sdk} style={{ height: 30, background: "var(--glass-2)", borderRadius: 6 }} />;
                 })}
               </div>
             );
           })}
         </div>
+        </div>
+        {tailCount > 0 && (
+          <p className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 14 }}>
+            showing the {topSdks.length} densest SDKs · +{tailCount} more with lighter coverage
+          </p>
+        )}
         {d.coverage.uncovered.length > 0 && (
-          <p className="mono" style={{ fontSize: 11, color: "var(--amber)", marginTop: 18, display: "flex", alignItems: "center", gap: 9 }}>
+          <p className="mono" style={{ fontSize: 11, color: "var(--amber)", marginTop: 10, display: "flex", alignItems: "center", gap: 9 }}>
             <span style={{ width: 10, height: 10, border: "1px dashed var(--amber)", borderRadius: 3 }} />
             {label(d.coverage.uncovered[0])} — the one open class the scout fleet is hunting now
           </p>
