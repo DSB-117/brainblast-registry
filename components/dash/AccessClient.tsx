@@ -16,23 +16,42 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
   const clear = () => setSel(new Set());
 
   const selected = [...sel];
-  const subtotal = selected.reduce((s, l) => s + priceOf(l), 0);
 
-  // Bundles whose lot set fully covers the selection — the buyer could take one
-  // of these instead. Suggest the cheapest that beats the à-la-carte subtotal.
   const bundles = [
     ...pricing.packages.map((p) => ({ key: p.key, name: p.name, lots: p.lots as LotName[], price: p.price })),
     { key: "scale", name: "Scale", lots: allSellable, price: pricing.scale },
   ];
   const isScale = selected.length > 0 && allSellable.every((l) => sel.has(l));
-  const matchedBundle = bundles.find((b) => b.lots.length === selected.length && selected.every((l) => b.lots.includes(l)));
-  const cheaperBundle = selected.length > 0
-    ? bundles.filter((b) => selected.every((l) => b.lots.includes(l)) && b.price < subtotal).sort((a, b) => a.price - b.price)[0]
-    : undefined;
-  const total = matchedBundle ? matchedBundle.price : subtotal;
+
+  // Price = apply every bundle whose lots are all selected (bundle lot-sets are
+  // disjoint), largest-first so Scale wins when everything is picked, then add
+  // the remaining lots at full à-la-carte price. This preserves a bundle's
+  // discount when the buyer adds extra lots on top of it — the bug was that a
+  // discount only applied on an EXACT bundle match, so one extra lot lost it.
+  const applied: { name: string; save: number }[] = [];
+  const covered = new Set<LotName>();
+  let bundleTotal = 0;
+  for (const b of [...bundles].sort((a, b) => b.lots.length - a.lots.length)) {
+    if (b.lots.length >= 2 && b.lots.every((l) => sel.has(l) && !covered.has(l))) {
+      const list = b.lots.reduce((s, l) => s + priceOf(l), 0);
+      applied.push({ name: b.name, save: list - b.price });
+      bundleTotal += b.price;
+      b.lots.forEach((l) => covered.add(l));
+    }
+  }
+  const extras = selected.filter((l) => !covered.has(l));
+  const total = selected.length ? bundleTotal + extras.reduce((s, l) => s + priceOf(l), 0) : 0;
   const brainTotal = Math.round(total * 0.9);
 
-  const orderLabel = matchedBundle ? `${matchedBundle.name} (${matchedBundle.lots.length} lots)` : selected.length ? `${selected.length} lot${selected.length > 1 ? "s" : ""}` : "";
+  // Upsell: a single bundle that fully covers the selection AND beats the
+  // current (already-discounted) total — suggest consolidating into it.
+  const cheaperBundle = selected.length > 0
+    ? bundles.filter((b) => selected.every((l) => b.lots.includes(l)) && b.price < total).sort((a, b) => a.price - b.price)[0]
+    : undefined;
+
+  const orderLabel = isScale ? "Scale (everything)"
+    : applied.length ? `${applied.map((a) => a.name).join(" + ")}${extras.length ? ` + ${extras.length} lot${extras.length > 1 ? "s" : ""}` : ""}`
+    : selected.length ? `${selected.length} lot${selected.length > 1 ? "s" : ""}` : "";
   const requestHref =
     `mailto:${contact}?subject=${encodeURIComponent(`Brainblast access — ${orderLabel || "license"}`)}` +
     `&body=${encodeURIComponent(
@@ -138,16 +157,16 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
                     <span className="mono" style={{ color: "var(--emerald)" }}>included</span>
                   </div>
                 )}
-                {matchedBundle && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, paddingTop: 6, borderTop: "1px solid var(--line)" }}>
-                    <span style={{ color: "var(--ink-3)" }}>{matchedBundle.name} bundle</span>
-                    <span className="mono" style={{ color: "var(--emerald)" }}>−{usd(subtotal - matchedBundle.price)}</span>
+                {applied.map((a, i) => (
+                  <div key={a.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, paddingTop: 6, borderTop: i === 0 ? "1px solid var(--line)" : undefined }}>
+                    <span style={{ color: "var(--ink-3)" }}>{a.name} bundle</span>
+                    <span className="mono" style={{ color: "var(--emerald)" }}>−{usd(a.save)}</span>
                   </div>
-                )}
+                ))}
               </div>
-              {!matchedBundle && cheaperBundle && (
+              {cheaperBundle && (
                 <button onClick={() => setLots(cheaperBundle.lots)} style={{ width: "100%", fontSize: 12, color: "var(--amber)", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "9px 12px", marginBottom: 14, cursor: "pointer", lineHeight: 1.4 }}>
-                  Take <strong>{cheaperBundle.name}</strong> for {usd(cheaperBundle.price)} → save {usd(subtotal - cheaperBundle.price)}
+                  Take <strong>{cheaperBundle.name}</strong> for {usd(cheaperBundle.price)} → save {usd(total - cheaperBundle.price)}
                 </button>
               )}
             </>
