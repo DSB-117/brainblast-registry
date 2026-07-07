@@ -45,6 +45,9 @@ const VETTED_CHECK_KINDS = new Set([
   "required-followup-call-missing",
   // Multi-language static AST (tree-sitter) — Go + Solidity.
   "cst-struct-field-forbidden-literal", "cst-member-access-forbidden",
+  // Solidity forbidden CALL by name (selfdestruct, delegatecall, suicide) —
+  // bare or method, any receiver. Complements cst-member-access-forbidden.
+  "cst-call-forbidden",
 ]);
 const VETTED_TEST_KINDS = new Set([
   "stripe-webhook-signature", "privy-jwt-claims", "bags-fee-share",
