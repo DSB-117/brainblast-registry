@@ -68,33 +68,28 @@ export default async function Pricing() {
         </div>
       </div>
 
-      <Offers detailed pricing={d.lotPricing} />
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 40 }}>
-        <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 26 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(52,211,153,0.14)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21l2-7.5L2 9h7z" /></svg>
-            </span>
-            <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Pay in $BRAIN for 10% off</h3>
-          </div>
-          <p style={{ fontSize: 13.5, color: "var(--ink-2)", margin: 0, lineHeight: 1.6 }}>
-            USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount. USDC we accept at full price is programmatically bought back into $BRAIN and routed to the contributors whose records you&apos;re using. You never have to hold a token to buy.
-          </p>
+      {/* How it's priced — the model, made explicit */}
+      <div style={{ marginBottom: 22 }}>
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--ink-4)", marginBottom: 10 }}>How pricing works</div>
+          <h2 style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", margin: 0 }}>Priced by coverage. Bought three ways.</h2>
         </div>
-
-        <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 26 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(139,123,255,0.14)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
-            </span>
-            <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>À la carte, with a ceiling</h3>
-          </div>
-          <p style={{ fontSize: 13.5, color: "var(--ink-2)", margin: 0, lineHeight: 1.6 }}>
-            Start with one lot for the ecosystem you ship on — $2,500/yr, no bundle to justify. Add more as you need them; the moment you&apos;d want three or more, Scale ($10,000) is the cheaper answer and includes every lot we add next. Low floor, clear ceiling, nothing wasted in between.
-          </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+          {[
+            { c: "var(--cyan)", h: "Priced by coverage, not count", b: "A lot's price tracks the distinct lessons it teaches — footgun patterns × SDKs covered × quality (severity and independent corroboration) — snapped to clean tiers. You pay for leverage, not row count, so a dense lot costs more than a big-but-shallow one." },
+            { c: "var(--violet)", h: "Three ways to buy", b: "A single lot for the ecosystem you ship on; a package — Web3 (both chains) or AppSec (every web, backend, cloud & crypto lot) — at a discount; or Scale, every lot plus every lot we add next. Low floor, clear ceiling." },
+            { c: "var(--emerald)", h: "Every license includes", b: "The full RED + GREEN fixtures and the proving test for each record · the live verified delta as the fleet finds more, zero holdback · a signed grant issued within a day · pay in USD, or $BRAIN for a standing 10% off." },
+          ].map((x) => (
+            <div key={x.h} className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 24 }}>
+              <span style={{ display: "block", width: 26, height: 3, borderRadius: 2, background: x.c, marginBottom: 14, boxShadow: `0 0 10px ${x.c}` }} />
+              <h3 style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 9px" }}>{x.h}</h3>
+              <p style={{ fontSize: 13, color: "var(--ink-2)", margin: 0, lineHeight: 1.6 }}>{x.b}</p>
+            </div>
+          ))}
         </div>
       </div>
+
+      <Offers detailed pricing={d.lotPricing} />
 
       {/* FAQ */}
       <div style={{ marginTop: 64 }}>

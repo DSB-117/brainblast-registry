@@ -116,7 +116,8 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 500 }}>{meta.name}</div>
-                    <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 2 }}>{l.count} VTIs · {l.patterns} patterns · {l.sdks} SDKs</div>
+                    <div style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "3px 0 0", lineHeight: 1.4 }}>{meta.blurb}</div>
+                    <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>{l.count} VTIs · {l.patterns} patterns · {l.sdks} SDKs</div>
                   </div>
                   <span className="mono" style={{ fontSize: 14, color: on ? meta.accent : "var(--ink-2)" }}>{usd(l.price)}</span>
                 </button>
@@ -139,7 +140,23 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
         <div style={{ borderRadius: 16, border: "1px solid var(--line)", background: "var(--glass-2)", padding: 20, position: "sticky", top: 84 }}>
           <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12, fontWeight: 500 }}>Your license</div>
           {selected.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 18px", lineHeight: 1.55 }}>Pick a package or select lots to see your price.</p>
+            <div style={{ marginBottom: 4 }}>
+              <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 16px", lineHeight: 1.55 }}>Pick a package or select lots to see your price.</p>
+              <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--ink-4)", marginBottom: 11 }}>Every license includes</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                {[
+                  "Full RED + GREEN fixtures and the proving test for every record",
+                  "The live verified delta as the fleet finds more — zero holdback",
+                  "A signed grant, issued within a day",
+                  "Pay in USD, or $BRAIN for 10% off",
+                ].map((t) => (
+                  <div key={t} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
+                    <span style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <>
               <div style={{ fontSize: 26, fontWeight: 600, marginBottom: 2, letterSpacing: "-0.02em" }}>{usd(total)}<span style={{ fontSize: 13, color: "var(--ink-4)", fontWeight: 400 }}> / yr</span></div>
