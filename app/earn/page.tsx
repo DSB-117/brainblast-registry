@@ -1,3 +1,5 @@
+import EarnEstimator from "../../components/store/EarnEstimator";
+
 const WHY = [
   {
     c: "var(--emerald)",
@@ -94,6 +96,18 @@ export default function Earn() {
             <p style={{ fontSize: 13.5, color: "var(--ink-2)", margin: 0, lineHeight: 1.6 }}>{w.body}</p>
           </Card>
         ))}
+      </div>
+
+      {/* Earnings — the incentive, made tangible */}
+      <div style={{ marginBottom: 68 }}>
+        <div style={{ textAlign: "center", marginBottom: 28, maxWidth: 620, marginLeft: "auto", marginRight: "auto" }}>
+          <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 10 }}>The incentive</div>
+          <h2 style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>What you could earn</h2>
+          <p style={{ fontSize: 15, color: "var(--ink-2)", margin: "12px auto 0", maxWidth: 566, lineHeight: 1.6 }}>
+            Each period, a fixed share of license revenue — the contributor pool — is split by score. Your cut is your VTIs&apos; score (severity × corroboration) over the whole corpus&apos;s. Paid on usage, not volume: a few sharp, well-corroborated traps can outweigh a pile of shallow ones.
+          </p>
+        </div>
+        <EarnEstimator />
       </div>
 
       {/* How it works — steps */}
