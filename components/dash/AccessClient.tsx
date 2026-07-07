@@ -103,6 +103,16 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
                 </button>
               );
             })}
+            {pricing.otherCount > 0 && (
+              <div title="Uncategorized traps — SDKs that don't map to a curated lot. Not sold à la carte; delivered with Scale." style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 15px", borderRadius: 13, border: "1px dashed var(--line)", background: "var(--glass-2)", opacity: 0.6, cursor: "default" }}>
+                <span style={{ width: 18, height: 18, borderRadius: 6, flexShrink: 0, border: "1.5px solid var(--line-2)" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>{LOTS.other.name}</div>
+                  <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 2 }}>{pricing.otherCount} VTIs · not sold à la carte</div>
+                </div>
+                <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-4)" }}>with Scale</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -122,6 +132,12 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
                     <span className="mono" style={{ color: "var(--ink-3)" }}>{usd(priceOf(l))}</span>
                   </div>
                 ))}
+                {isScale && pricing.otherCount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
+                    <span style={{ color: "var(--ink-3)" }}>{LOTS.other.name} <span style={{ color: "var(--ink-4)" }}>({pricing.otherCount})</span></span>
+                    <span className="mono" style={{ color: "var(--emerald)" }}>included</span>
+                  </div>
+                )}
                 {matchedBundle && (
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, paddingTop: 6, borderTop: "1px solid var(--line)" }}>
                     <span style={{ color: "var(--ink-3)" }}>{matchedBundle.name} bundle</span>
