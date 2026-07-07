@@ -393,7 +393,7 @@ function Drawer({ row, onClose }: { row: LedgerRow; onClose: () => void }) {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.7" style={{ margin: "0 auto 8px", display: "block" }} aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 018 0v3" /></svg>
         <p style={{ fontSize: 12.5, color: "var(--ink-2)", margin: "0 0 3px" }}>Fixture bodies are gated</p>
         <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "0 0 13px", lineHeight: 1.5 }}>The vulnerable + fixed snippets unlock with the <strong style={{ color: lotAccent(row.lot) }}>{lotName(row.lot)}</strong> lot — or Scale.</p>
-        <a href="/access" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: "#03130c", background: "var(--grad-brand)", padding: "8px 16px", borderRadius: 10 }}>Get access</a>
+        <span title="Public access is coming soon." style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: "var(--ink-3)", background: "var(--glass-2)", border: "1px solid var(--line)", padding: "8px 16px", borderRadius: 10, cursor: "default" }}>Coming soon</span>
       </div>
     </div>
   );
