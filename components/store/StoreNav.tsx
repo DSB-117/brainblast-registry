@@ -44,23 +44,26 @@ export default function StoreNav() {
           })}
         </nav>
 
-        <Link
-          href="/pricing"
+        {/* Public purchase isn't open yet — gate the primary CTA. Subscription
+            cards still route to /access so buyers can explore pricing. */}
+        <span
+          title="Public access is coming soon."
           style={{
             display: "inline-flex",
             alignItems: "center",
             height: 38,
             padding: "0 18px",
             borderRadius: 10,
-            background: "var(--grad-brand)",
-            color: "#03130c",
+            background: "var(--glass-2)",
+            color: "var(--ink-3)",
+            border: "1px solid var(--line)",
             fontSize: 14,
             fontWeight: 600,
-            boxShadow: "0 6px 24px -8px rgba(52,211,153,0.6)",
+            cursor: "default",
           }}
         >
-          Get access
-        </Link>
+          Coming soon
+        </span>
       </div>
     </header>
   );
