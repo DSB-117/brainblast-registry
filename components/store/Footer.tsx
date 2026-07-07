@@ -17,7 +17,7 @@ export default function Footer() {
         <div style={{ display: "flex", gap: 64, flexWrap: "wrap" }}>
           {[
             { h: "Product", items: [["Marketplace", "/browse"], ["Coverage", "/coverage"], ["Pricing", "/pricing"], ["Earn", "/earn"]] },
-            { h: "Trust", items: [["How it works", "/proof"], ["Quality SLA", "/sla"]] },
+            { h: "Trust", items: [["How it works", "/coverage"], ["Quality SLA", "/sla"]] },
             { h: "Developers", items: [["API · CLI · MCP", "/docs"], ["npm", "https://www.npmjs.com/package/brainblast"]] },
           ].map((col) => (
             <div key={col.h}>
