@@ -11,17 +11,20 @@ const SEV = [
   { key: "critical", label: "Critical", w: 1.9 },
 ] as const;
 
-const BASELINE = 6000; // illustrative weighted usage of the rest of the corpus
+const AVG_SCORE_PER_VTI = 2.5; // illustrative avg contributor score per record
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
-export default function EarnEstimator() {
+export default function EarnEstimator({ vtis }: { vtis: number }) {
   const [traps, setTraps] = useState(12);
   const [sevW, setSevW] = useState(1.4);
   const [corrob, setCorrob] = useState(4);
-  const [pool, setPool] = useState(150_000);
+  const [pool, setPool] = useState(100_000);
 
+  // Baseline = the rest of the corpus's weighted score, grounded in the live
+  // record count so one contributor's share stays realistic as the corpus grows.
+  const baseline = Math.max(Math.round(vtis * AVG_SCORE_PER_VTI), 4000);
   const score = traps * sevW * corrob;
-  const share = score / (score + BASELINE);
+  const share = score / (score + baseline);
   const perYear = pool * 4 * share; // pool is per-quarter
 
   const Slider = ({ label, value, children }: { label: string; value: string; children: React.ReactNode }) => (
@@ -60,7 +63,7 @@ export default function EarnEstimator() {
         </Slider>
 
         <Slider label="Quarterly contributor pool (assumed)" value={usd(pool)}>
-          <input type="range" min={25000} max={500000} step={25000} value={pool} onChange={(e) => setPool(+e.target.value)} style={{ width: "100%", accentColor: "var(--violet)" }} />
+          <input type="range" min={25000} max={250000} step={25000} value={pool} onChange={(e) => setPool(+e.target.value)} style={{ width: "100%", accentColor: "var(--violet)" }} />
         </Slider>
       </div>
 
@@ -69,7 +72,7 @@ export default function EarnEstimator() {
         <div className="grad-text" style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1 }}>{usd(perYear)}</div>
         <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)", margin: "11px 0 0" }}>≈ {(share * 100).toFixed(share < 0.1 ? 2 : 1)}% of the pool · {usd(perYear / 4)}/qtr</div>
         <p style={{ fontSize: 11, color: "var(--ink-4)", margin: "20px 0 0", lineHeight: 1.55 }}>
-          A model, not a quote or guarantee. Real payouts depend on total licensing, how often your records are used, and their severity and corroboration. The on-chain payout is rolling out.
+          A model, not a quote or guarantee — the share is computed against the live corpus, but the pool is an assumption and there&apos;s no revenue yet. Real payouts depend on total licensing, how often your records are used, and their severity and corroboration. The on-chain payout is rolling out.
         </p>
       </div>
     </div>
