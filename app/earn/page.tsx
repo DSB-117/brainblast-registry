@@ -1,4 +1,7 @@
 import EarnEstimator from "../../components/store/EarnEstimator";
+import { loadDashboard } from "../../lib/dashboardData";
+
+export const revalidate = 300;
 
 const WHY = [
   {
@@ -69,7 +72,8 @@ function Code({ lines }: { lines: string[] }) {
   );
 }
 
-export default function Earn() {
+export default async function Earn() {
+  const d = await loadDashboard();
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "72px 28px 20px", animation: "fade 0.4s ease" }}>
       {/* Hero */}
@@ -107,7 +111,7 @@ export default function Earn() {
             Each period, a fixed share of license revenue — the contributor pool — is split by score. Your cut is your VTIs&apos; score (severity × corroboration) over the whole corpus&apos;s. Paid on usage, not volume: a few sharp, well-corroborated traps can outweigh a pile of shallow ones.
           </p>
         </div>
-        <EarnEstimator />
+        <EarnEstimator vtis={d.totals.vtis} />
       </div>
 
       {/* How it works — steps */}
