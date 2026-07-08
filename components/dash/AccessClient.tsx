@@ -15,6 +15,17 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
   const [sel, setSel] = useState<Set<LotName>>(new Set());
   const [period, setPeriod] = useState<"yr" | "mo">("yr");
   const [showForm, setShowForm] = useState(false);
+  const [sent, setSent] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const closeForm = () => { setShowForm(false); setSent("idle"); };
+  async function submitForm(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setSent("sending");
+    try {
+      const res = await fetch(FORMSPREE, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } });
+      setSent(res.ok ? "done" : "error");
+    } catch { setSent("error"); }
+  }
 
   const toggle = (l: LotName) => setSel((p) => { const n = new Set(p); n.has(l) ? n.delete(l) : n.add(l); return n; });
   const setLots = (lots: LotName[]) => setSel(new Set(lots));
@@ -234,26 +245,40 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
       </div>
 
       {showForm && (
-        <div onClick={() => setShowForm(false)} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(4,4,10,0.66)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div onClick={closeForm} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(4,4,10,0.66)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} className="glass" style={{ width: "100%", maxWidth: 460, borderRadius: 18, padding: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
               <h3 style={{ fontSize: 19, fontWeight: 600, margin: 0 }}>Contact sales</h3>
-              <button onClick={() => setShowForm(false)} aria-label="Close" style={{ background: "transparent", border: "none", color: "var(--ink-3)", cursor: "pointer", fontSize: 22, lineHeight: 1, padding: 0 }}>×</button>
+              <button onClick={closeForm} aria-label="Close" style={{ background: "transparent", border: "none", color: "var(--ink-3)", cursor: "pointer", fontSize: 22, lineHeight: 1, padding: 0 }}>×</button>
             </div>
-            <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 20px", lineHeight: 1.5 }}>Tell us what you need and we&apos;ll follow up with your signed grant. Access is opening soon.</p>
-            <form action={FORMSPREE} method="POST" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <label style={labelStyle}>Full name<input name="name" required style={fieldStyle} /></label>
-              <label style={labelStyle}>Company <span style={{ color: "var(--ink-4)" }}>(optional)</span><input name="company" style={fieldStyle} /></label>
-              <label style={labelStyle}>Desired subscription
-                <select name="subscription" defaultValue={desiredDefault} style={fieldStyle}>
-                  {subOptions.map((o) => <option key={o} value={o} style={{ background: "#0d0d16" }}>{o}</option>)}
-                </select>
-              </label>
-              <label style={labelStyle}>Contact email<input name="email" type="email" required style={fieldStyle} /></label>
-              <input type="hidden" name="selection" value={selectionSummary} />
-              <input type="hidden" name="_subject" value="New Brainblast access inquiry" />
-              <button type="submit" style={{ marginTop: 4, height: 44, borderRadius: 12, border: "none", background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Send</button>
-            </form>
+            {sent === "done" ? (
+              <div style={{ padding: "14px 0 4px", textAlign: "center" }}>
+                <span style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(52,211,153,0.14)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
+                </span>
+                <h4 style={{ fontSize: 17, fontWeight: 600, margin: "0 0 8px" }}>Thank you!</h4>
+                <p style={{ fontSize: 13.5, color: "var(--ink-2)", margin: "0 auto 20px", maxWidth: 320, lineHeight: 1.55 }}>Keep an eye on your email. Someone will reach out to you soon!</p>
+                <button onClick={closeForm} style={{ height: 42, padding: "0 24px", borderRadius: 11, border: "1px solid var(--line-2)", background: "var(--glass-2)", color: "var(--ink)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Close</button>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 20px", lineHeight: 1.5 }}>Tell us what you need and we&apos;ll follow up with your signed grant. Access is opening soon.</p>
+                <form onSubmit={submitForm} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label style={labelStyle}>Full name<input name="name" required style={fieldStyle} /></label>
+                  <label style={labelStyle}>Company <span style={{ color: "var(--ink-4)" }}>(optional)</span><input name="company" style={fieldStyle} /></label>
+                  <label style={labelStyle}>Desired subscription
+                    <select name="subscription" defaultValue={desiredDefault} style={fieldStyle}>
+                      {subOptions.map((o) => <option key={o} value={o} style={{ background: "#0d0d16" }}>{o}</option>)}
+                    </select>
+                  </label>
+                  <label style={labelStyle}>Contact email<input name="email" type="email" required style={fieldStyle} /></label>
+                  <input type="hidden" name="selection" value={selectionSummary} />
+                  <input type="hidden" name="_subject" value="New Brainblast access inquiry" />
+                  {sent === "error" && <p style={{ fontSize: 12, color: "var(--rose)", margin: 0 }}>Something went wrong — please try again, or email access@brainblast.tech.</p>}
+                  <button type="submit" disabled={sent === "sending"} style={{ marginTop: 4, height: 44, borderRadius: 12, border: "none", background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600, cursor: sent === "sending" ? "default" : "pointer", opacity: sent === "sending" ? 0.7 : 1 }}>{sent === "sending" ? "Sending…" : "Send"}</button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
