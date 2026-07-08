@@ -4,13 +4,17 @@ import { useState } from "react";
 import { LOTS, PACKAGES, monthlyOf, type LotName, type Pricing } from "../../lib/lots";
 
 function usd(n: number) { return `$${n.toLocaleString()}`; }
-const contact = process.env.NEXT_PUBLIC_ACCESS_EMAIL || "access@brainblast.tech";
+// Set NEXT_PUBLIC_FORMSPREE_ENDPOINT to your Formspree form URL (https://formspree.io/f/xxxx).
+const FORMSPREE = process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT || "https://formspree.io/f/your-form-id";
+const fieldStyle = { height: 40, borderRadius: 9, border: "1px solid var(--line-2)", background: "var(--glass-2)", color: "var(--ink)", fontSize: 14, padding: "0 12px", outline: "none", width: "100%" };
+const labelStyle = { fontSize: 12.5, color: "var(--ink-2)", display: "flex", flexDirection: "column" as const, gap: 6 };
 
 export default function AccessClient({ pricing }: { pricing: Pricing }) {
   const priceOf = (l: LotName) => pricing.lots.find((x) => x.lot === l)?.price ?? 0;
   const allSellable = pricing.lots.map((l) => l.lot);
   const [sel, setSel] = useState<Set<LotName>>(new Set());
   const [period, setPeriod] = useState<"yr" | "mo">("yr");
+  const [showForm, setShowForm] = useState(false);
 
   const toggle = (l: LotName) => setSel((p) => { const n = new Set(p); n.has(l) ? n.delete(l) : n.add(l); return n; });
   const setLots = (lots: LotName[]) => setSel(new Set(lots));
@@ -56,11 +60,12 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
   const orderLabel = isScale ? "Scale (everything)"
     : applied.length ? `${applied.map((a) => a.name).join(" + ")}${extras.length ? ` + ${extras.length} lot${extras.length > 1 ? "s" : ""}` : ""}`
     : selected.length ? `${selected.length} lot${selected.length > 1 ? "s" : ""}` : "";
-  const requestHref =
-    `mailto:${contact}?subject=${encodeURIComponent(`Brainblast access — ${orderLabel || "license"}`)}` +
-    `&body=${encodeURIComponent(
-      `I'd like a license for:\n  ${orderLabel}\n  lots: ${selected.join(", ") || "(none selected)"}\n  price: ${usd(disp(total))}${unit} (or ${usd(disp(brainTotal))} in $BRAIN), billed ${period === "mo" ? "monthly" : "yearly"}\n\nBuyer / org:\nIntended use (train / eval):\n`,
-    )}`;
+  const subOptions = ["Scale — everything", ...pricing.packages.map((p) => `${p.name} package`), ...allSellable.map((l) => LOTS[l].name), "Undecided / other"];
+  const desiredDefault = isScale ? "Scale — everything"
+    : applied.length === 1 && extras.length === 0 ? `${applied[0].name} package`
+    : selected.length === 1 ? LOTS[selected[0]].name
+    : "Undecided / other";
+  const selectionSummary = `${orderLabel || "—"} · ${usd(disp(total))}${unit} (${period === "mo" ? "monthly" : "annual"}; ${selected.join(", ") || "no lots"})`;
 
   const QuickPick = ({ name, accent, lots, price, tagline }: { name: string; accent: string; lots: LotName[]; price: number; tagline: string }) => {
     const active = lots.length === selected.length && lots.every((l) => sel.has(l));
@@ -213,15 +218,45 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
             </div>
           </div>
 
-          <a href={selected.length ? requestHref : "/browse"}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 44, borderRadius: 12, background: selected.length ? "var(--grad-brand)" : "var(--glass-2)", color: selected.length ? "#03130c" : "var(--ink)", border: selected.length ? "none" : "1px solid var(--line-2)", fontSize: 14.5, fontWeight: 600 }}>
-            {selected.length ? "Request access" : "Browse the free tier"}
-          </a>
+          {selected.length ? (
+            <button onClick={() => setShowForm(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", height: 44, borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", border: "none", fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>
+              Contact sales
+            </button>
+          ) : (
+            <a href="/browse" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 44, borderRadius: 12, background: "var(--glass-2)", color: "var(--ink)", border: "1px solid var(--line-2)", fontSize: 14.5, fontWeight: 600 }}>
+              Browse the free tier
+            </a>
+          )}
           <p className="mono" style={{ fontSize: 10, color: "var(--ink-4)", margin: "10px 0 0", textAlign: "center", lineHeight: 1.5 }}>
-            USD or $BRAIN. We issue your signed grant within a day. Self-serve on-chain settlement is rolling out.
+            USD or $BRAIN. Access is opening soon — contact sales and we&apos;ll issue your signed grant.
           </p>
         </div>
       </div>
+
+      {showForm && (
+        <div onClick={() => setShowForm(false)} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(4,4,10,0.66)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} className="glass" style={{ width: "100%", maxWidth: 460, borderRadius: 18, padding: 28 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+              <h3 style={{ fontSize: 19, fontWeight: 600, margin: 0 }}>Contact sales</h3>
+              <button onClick={() => setShowForm(false)} aria-label="Close" style={{ background: "transparent", border: "none", color: "var(--ink-3)", cursor: "pointer", fontSize: 22, lineHeight: 1, padding: 0 }}>×</button>
+            </div>
+            <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 20px", lineHeight: 1.5 }}>Tell us what you need and we&apos;ll follow up with your signed grant. Access is opening soon.</p>
+            <form action={FORMSPREE} method="POST" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <label style={labelStyle}>Full name<input name="name" required style={fieldStyle} /></label>
+              <label style={labelStyle}>Company <span style={{ color: "var(--ink-4)" }}>(optional)</span><input name="company" style={fieldStyle} /></label>
+              <label style={labelStyle}>Desired subscription
+                <select name="subscription" defaultValue={desiredDefault} style={fieldStyle}>
+                  {subOptions.map((o) => <option key={o} value={o} style={{ background: "#0d0d16" }}>{o}</option>)}
+                </select>
+              </label>
+              <label style={labelStyle}>Contact email<input name="email" type="email" required style={fieldStyle} /></label>
+              <input type="hidden" name="selection" value={selectionSummary} />
+              <input type="hidden" name="_subject" value="New Brainblast access inquiry" />
+              <button type="submit" style={{ marginTop: 4, height: 44, borderRadius: 12, border: "none", background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Send</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
