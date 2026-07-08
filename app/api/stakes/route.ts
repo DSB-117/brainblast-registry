@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabase";
 import { BOUNTY_POOL_WALLET } from "../../../lib/solana";
 import { loadBondableVtis } from "../../../lib/corpusIndex";
+import { isAuthorized } from "../../../lib/auth";
 
 function generateMemoCode(): string {
   return `BB-${randomBytes(4).toString("hex")}`;
@@ -21,6 +22,12 @@ const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 // amplifies the contributor's dividend share, and is slashed if the VTI stops
 // reproducing.
 export async function POST(req: NextRequest) {
+  // Gated: unauthenticated bond creation is an unbounded DB-write / corpus-load
+  // vector. Staking is coming-soon, so require the operator token until it opens
+  // for self-service (then swap for a per-IP cap + wallet-ownership proof).
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized — staking is not open yet" }, { status: 401 });
+  }
   let body: any;
   try {
     body = await req.json();

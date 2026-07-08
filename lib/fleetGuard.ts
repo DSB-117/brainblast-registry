@@ -12,8 +12,17 @@ const RATE_WINDOW_MS = 60 * 60 * 1000;
 // Hash the client IP (never store it raw). Salt with a server secret if set so the
 // hash can't be linked across services; falls back to a fixed salt otherwise.
 export function ipHash(req: NextRequest): string {
-  const fwd = req.headers.get("x-forwarded-for") ?? "";
-  const ip = fwd.split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
+  // Use the PLATFORM-set client IP, not the leftmost x-forwarded-for value —
+  // a client can spoof `X-Forwarded-For: <rotating-ip>` to land in a fresh
+  // rate-limit bucket every request and defeat the cap entirely. On Vercel the
+  // trustworthy IP is x-vercel-forwarded-for / x-real-ip; if we must fall back
+  // to x-forwarded-for, take the LAST hop (appended by the proxy), not the first.
+  const fwd = (req.headers.get("x-forwarded-for") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const ip =
+    req.headers.get("x-vercel-forwarded-for") ||
+    req.headers.get("x-real-ip") ||
+    fwd[fwd.length - 1] ||
+    "unknown";
   const salt = process.env.FLEET_IP_SALT ?? "brainblast-fleet";
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }

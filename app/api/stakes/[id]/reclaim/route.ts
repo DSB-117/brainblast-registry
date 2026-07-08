@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../../lib/supabase";
+import { isAuthorized } from "../../../../../lib/auth";
 
-// POST /api/stakes/:id/reclaim — author requests a refund for a rejected
-// stake. Queues a refund_requests row; refunds are processed manually every
-// Friday (v0.5.0 launch decision — automate later).
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+// POST /api/stakes/:id/reclaim — queues a refund for a rejected stake.
+// Gated: this mutates the manually-processed refund queue and moves value, so
+// it requires the operator token. (Staking is coming-soon; when it opens for
+// self-service, replace this with proof the caller owns bonder_wallet.)
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const id = Number(params.id);
   if (!Number.isInteger(id)) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
