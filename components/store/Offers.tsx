@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LOTS, type LotName, type Pricing } from "../../lib/lots";
+import { LOTS, monthlyOf, type LotName, type Pricing } from "../../lib/lots";
 
 const contact = process.env.NEXT_PUBLIC_ACCESS_EMAIL || "contact@brainblast.tech";
 function mailto(subject: string, body: string) {
@@ -68,6 +68,7 @@ export default function Offers({ detailed = false, pricing }: { detailed?: boole
                 <span style={{ fontSize: 12, color: "var(--ink-4)" }}>/ yr</span>
                 {save > 0 && <span className="mono" style={{ fontSize: 12.5, color: "var(--ink-4)", textDecoration: "line-through" }}>{usd(b.list)}</span>}
               </div>
+              <div className="mono" style={{ fontSize: 12, color: "var(--ink-4)", marginBottom: 6 }}>or {usd(monthlyOf(b.price))}/mo billed monthly</div>
               <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 16, lineHeight: 1.5 }}>{b.blurb}</div>
               <div style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 22, padding: "10px 12px", borderRadius: 10, background: "var(--glass-2)", border: "1px solid var(--line)" }}>
                 <span style={{ color: "var(--ink-4)" }}>Includes · </span>{b.includes}
@@ -108,7 +109,10 @@ export default function Offers({ detailed = false, pricing }: { detailed?: boole
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: meta.accent, flexShrink: 0 }} />
                     <span style={{ fontSize: 14.5, fontWeight: 600 }}>{meta.name}</span>
                   </span>
-                  <span className="mono" style={{ fontSize: 14, fontWeight: 600 }}>{usd(lotPrice(l.lot))}</span>
+                  <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                    <span className="mono" style={{ fontSize: 14, fontWeight: 600 }}>{usd(lotPrice(l.lot))}<span style={{ fontSize: 10, color: "var(--ink-4)", fontWeight: 400 }}>/yr</span></span>
+                    <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>or {usd(monthlyOf(lotPrice(l.lot)))}/mo</span>
+                  </span>
                 </div>
                 <div style={{ fontSize: 12, color: "var(--ink-3)", lineHeight: 1.5, minHeight: 34 }}>{meta.blurb}</div>
                 <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)" }}>{l.count} VTIs · {l.patterns} patterns · {l.sdks} SDKs</div>

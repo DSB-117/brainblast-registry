@@ -27,6 +27,10 @@ const FAQ = [
     a: "VTIs are JSON records with the code fixtures and tests as files, streamed as NDJSON. Browse pulls a receipt-only sample; a paid lot (or Scale) streams the full fixtures plus a live feed of new verified records as the fleet finds them.",
   },
   {
+    q: "Monthly or annual?",
+    a: "Both — pick the period when you build your license on the access page. Every lot, package, and Scale bills monthly or annually. Annual is the committed rate: 2 months free (~17% off) versus paying month to month. The $BRAIN 10% discount stacks on either.",
+  },
+  {
     q: "Do I need $BRAIN or a wallet to buy?",
     a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount on any lot or Scale. Whatever you pay, we route value to the contributors whose records you use.",
   },
