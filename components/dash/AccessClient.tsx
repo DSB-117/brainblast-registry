@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LOTS, PACKAGES, type LotName, type Pricing } from "../../lib/lots";
+import { LOTS, PACKAGES, monthlyOf, type LotName, type Pricing } from "../../lib/lots";
 
 function usd(n: number) { return `$${n.toLocaleString()}`; }
 const contact = process.env.NEXT_PUBLIC_ACCESS_EMAIL || "access@brainblast.tech";
@@ -10,12 +10,16 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
   const priceOf = (l: LotName) => pricing.lots.find((x) => x.lot === l)?.price ?? 0;
   const allSellable = pricing.lots.map((l) => l.lot);
   const [sel, setSel] = useState<Set<LotName>>(new Set());
+  const [period, setPeriod] = useState<"yr" | "mo">("yr");
 
   const toggle = (l: LotName) => setSel((p) => { const n = new Set(p); n.has(l) ? n.delete(l) : n.add(l); return n; });
   const setLots = (lots: LotName[]) => setSel(new Set(lots));
   const clear = () => setSel(new Set());
 
   const selected = [...sel];
+  // All math stays annual; monthly is a uniform ÷10 applied at display time.
+  const disp = (n: number) => (period === "mo" ? monthlyOf(n) : n);
+  const unit = period === "mo" ? "/mo" : "/yr";
 
   const bundles = [
     ...pricing.packages.map((p) => ({ key: p.key, name: p.name, lots: p.lots as LotName[], price: p.price })),
@@ -55,7 +59,7 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
   const requestHref =
     `mailto:${contact}?subject=${encodeURIComponent(`Brainblast access — ${orderLabel || "license"}`)}` +
     `&body=${encodeURIComponent(
-      `I'd like a license for:\n  ${orderLabel}\n  lots: ${selected.join(", ") || "(none selected)"}\n  price: ${usd(total)}/yr (or ${usd(brainTotal)} in $BRAIN)\n\nBuyer / org:\nIntended use (train / eval):\n`,
+      `I'd like a license for:\n  ${orderLabel}\n  lots: ${selected.join(", ") || "(none selected)"}\n  price: ${usd(disp(total))}${unit} (or ${usd(disp(brainTotal))} in $BRAIN), billed ${period === "mo" ? "monthly" : "yearly"}\n\nBuyer / org:\nIntended use (train / eval):\n`,
     )}`;
 
   const QuickPick = ({ name, accent, lots, price, tagline }: { name: string; accent: string; lots: LotName[]; price: number; tagline: string }) => {
@@ -68,7 +72,7 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: accent, boxShadow: `0 0 8px ${accent}` }} />
             <span style={{ fontSize: 14.5, fontWeight: 600 }}>{name}</span>
           </span>
-          <span className="mono" style={{ fontSize: 14, fontWeight: 600 }}>{usd(price)}</span>
+          <span className="mono" style={{ fontSize: 14, fontWeight: 600 }}>{usd(disp(price))}<span style={{ fontSize: 10.5, color: "var(--ink-4)", fontWeight: 400 }}>{unit}</span></span>
         </div>
         <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tagline}</span>
       </button>
@@ -85,6 +89,18 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
       <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "0 0 24px", maxWidth: 520, lineHeight: 1.6 }}>
         License the slices that match your stack, take a package, or grab everything with Scale. Every paid lot ships full fixtures, the live delta, and zero holdback — we issue a signed grant.
       </p>
+
+      {/* Billing period */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
+        <div style={{ display: "inline-flex", padding: 3, borderRadius: 10, background: "var(--glass-2)", border: "1px solid var(--line)" }}>
+          {([["mo", "Monthly"], ["yr", "Annual"]] as const).map(([p, lbl]) => (
+            <button key={p} onClick={() => setPeriod(p)} style={{ padding: "6px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "none", background: period === p ? "var(--grad-brand)" : "transparent", color: period === p ? "#03130c" : "var(--ink-2)" }}>{lbl}</button>
+          ))}
+        </div>
+        <span style={{ fontSize: 12, color: period === "yr" ? "var(--emerald)" : "var(--ink-4)" }}>
+          {period === "yr" ? "2 months free — ~17% off vs monthly" : "billed monthly · annual saves ~17%"}
+        </span>
+      </div>
 
       {/* Quick-pick bundles */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 22 }}>
@@ -119,7 +135,7 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
                     <div style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "3px 0 0", lineHeight: 1.4 }}>{meta.blurb}</div>
                     <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>{l.count} VTIs · {l.patterns} patterns · {l.sdks} SDKs</div>
                   </div>
-                  <span className="mono" style={{ fontSize: 14, color: on ? meta.accent : "var(--ink-2)" }}>{usd(l.price)}</span>
+                  <span className="mono" style={{ fontSize: 14, color: on ? meta.accent : "var(--ink-2)" }}>{usd(disp(l.price))}<span style={{ fontSize: 10, color: "var(--ink-4)", fontWeight: 400 }}>{unit}</span></span>
                 </button>
               );
             })}
@@ -159,13 +175,14 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 26, fontWeight: 600, marginBottom: 2, letterSpacing: "-0.02em" }}>{usd(total)}<span style={{ fontSize: 13, color: "var(--ink-4)", fontWeight: 400 }}> / yr</span></div>
-              <p style={{ fontSize: 12.5, color: "var(--emerald)", margin: "0 0 12px" }}>{usd(brainTotal)} in $BRAIN (10% off)</p>
+              <div style={{ fontSize: 26, fontWeight: 600, marginBottom: 2, letterSpacing: "-0.02em" }}>{usd(disp(total))}<span style={{ fontSize: 13, color: "var(--ink-4)", fontWeight: 400 }}> {unit}</span></div>
+              <p style={{ fontSize: 12.5, color: "var(--emerald)", margin: "0 0 4px" }}>{usd(disp(brainTotal))} in $BRAIN (10% off)</p>
+              <p style={{ fontSize: 11.5, color: "var(--ink-4)", margin: "0 0 12px" }}>{period === "mo" ? `billed monthly · ${usd(total)}/yr on annual` : `billed yearly · ${usd(monthlyOf(total))}/mo on monthly`}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
                 {selected.map((l) => (
                   <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
                     <span style={{ color: "var(--ink-2)" }}>{LOTS[l].name}</span>
-                    <span className="mono" style={{ color: "var(--ink-3)" }}>{usd(priceOf(l))}</span>
+                    <span className="mono" style={{ color: "var(--ink-3)" }}>{usd(disp(priceOf(l)))}</span>
                   </div>
                 ))}
                 {isScale && pricing.otherCount > 0 && (
@@ -177,13 +194,13 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
                 {applied.map((a, i) => (
                   <div key={a.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, paddingTop: 6, borderTop: i === 0 ? "1px solid var(--line)" : undefined }}>
                     <span style={{ color: "var(--ink-3)" }}>{a.name} bundle</span>
-                    <span className="mono" style={{ color: "var(--emerald)" }}>−{usd(a.save)}</span>
+                    <span className="mono" style={{ color: "var(--emerald)" }}>−{usd(disp(a.save))}</span>
                   </div>
                 ))}
               </div>
               {cheaperBundle && (
                 <button onClick={() => setLots(cheaperBundle.lots)} style={{ width: "100%", fontSize: 12, color: "var(--amber)", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "9px 12px", marginBottom: 14, cursor: "pointer", lineHeight: 1.4 }}>
-                  Take <strong>{cheaperBundle.name}</strong> for {usd(cheaperBundle.price)} → save {usd(total - cheaperBundle.price)}
+                  Take <strong>{cheaperBundle.name}</strong> for {usd(disp(cheaperBundle.price))} → save {usd(disp(total - cheaperBundle.price))}
                 </button>
               )}
             </>

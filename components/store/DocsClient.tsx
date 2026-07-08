@@ -140,7 +140,7 @@ export default function DocsClient() {
               <><strong style={{ color: "var(--ink)" }}>Package</strong> — Web3 (both chains) or AppSec (every web, backend, cloud &amp; crypto lot), at a discount.</>,
               <><strong style={{ color: "var(--ink)" }}>Scale</strong> — every lot, plus every lot added later, plus the zero-holdback firehose.</>,
             ]} />
-            <P>Lots are <strong style={{ color: "var(--ink)" }}>priced by coverage</strong> — distinct footgun patterns × SDKs × quality, not raw row count. Every license ships the full RED+GREEN fixtures and proving test, the live verified delta as the fleet finds more, and a signed grant. Pay in USD or $BRAIN (10% off). See <A href="/pricing">Pricing</A> and build a license on <A href="/access">Access</A>.</P>
+            <P>Lots are <strong style={{ color: "var(--ink)" }}>priced by coverage</strong> — distinct footgun patterns × SDKs × quality, not raw row count. Every license ships the full RED+GREEN fixtures and proving test, the live verified delta as the fleet finds more, and a signed grant. Bill <strong style={{ color: "var(--ink)" }}>monthly or annually</strong> — annual is the committed rate, ~17% off (2 months free) — and pay in USD or $BRAIN (10% off), which stacks on either. See <A href="/pricing">Pricing</A> and build a license on <A href="/access">Access</A>.</P>
           </Section>
 
           <Section id="integrate" kicker="Use it" title="Integrate">

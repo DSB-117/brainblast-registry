@@ -56,6 +56,12 @@ export const PACKAGES: PackageDef[] = [
 ];
 export const SCALE_DISCOUNT = 0.32; // vs the summed à-la-carte lots
 
+// Billing periods. Annual is the committed rate; monthly is pay-as-you-go.
+// annual = 10 × monthly — paying annually is "2 months free" (~17% off). Every
+// price (lot, package, Scale, total) is a uniform ÷10, so discounts compose.
+export const MONTHLY_FACTOR = 10;
+export const monthlyOf = (annual: number) => Math.round(annual / MONTHLY_FACTOR);
+
 // ── Classifier ───────────────────────────────────────────────────────────────
 const RE_SOLANA = /solana|anchor|metaplex|spl-token|raydium|jupiter|orca|meteora|coral-xyz|web3\.js|jito|pyth|mpl-|bags|tensor|drift|switchboard/;
 const RE_EVM = /\bviem\b|ethers|uniswap|1inch|\bsolidity\b|web3\.py|@0x|\bevm\b|wagmi|hardhat|foundry|permit2|aave|hop|sdk-core|v3-sdk/;
