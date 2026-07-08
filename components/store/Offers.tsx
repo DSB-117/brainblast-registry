@@ -86,7 +86,7 @@ export default function Offers({ detailed = false, pricing }: { detailed?: boole
                 </div>
               )}
               <Link href="/access" style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "center", height: 46, borderRadius: 12, fontSize: 14.5, fontWeight: 600, background: b.featured ? "var(--grad-brand)" : "var(--glass-2)", color: b.featured ? "#03130c" : "var(--ink)", border: b.featured ? "none" : "1px solid var(--line-2)" }}>
-                {b.cta}
+                Coming soon
               </Link>
             </div>
           );
