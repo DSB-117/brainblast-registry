@@ -1,4 +1,4 @@
-// VENDORED from brainblast@0.13.0 (packages/core/src/server.ts) — do NOT edit here.
+// VENDORED from brainblast@0.13.1 (packages/core/src/server.ts) — do NOT edit here.
 // Sync from upstream.
 
 // The hosted distribution endpoint — R3 of ROADMAP-TRAINING-DATA.md.
@@ -35,6 +35,19 @@ import {
 } from "./federation";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+// Read a space's policy without ever letting a missing table / transient error
+// break federation: on any failure, degrade to "no policy" (open). ACL
+// enforcement is additive — a space is open until an admin restricts it, and an
+// un-migrated policy store is exactly that state.
+async function safeGetPolicy(store: HiveExperienceStore, space: string): Promise<SpacePolicy | null> {
+  if (!store.getPolicy) return null;
+  try {
+    return await store.getPolicy(space);
+  } catch {
+    return null;
+  }
+}
 
 // A lot the server holds, kept named so a grant's lot-scope can be enforced.
 export interface ServerLot {
@@ -124,7 +137,7 @@ export async function handleRequest(req: ServerRequest, deps: ServerDeps): Promi
     if (!deps.hiveStore.getPolicy || !deps.hiveStore.setPolicy) return json(501, { error: "this endpoint does not support space policies" });
 
     if (req.method === "GET") {
-      const policy = await deps.hiveStore.getPolicy(req.space!);
+      const policy = await safeGetPolicy(deps.hiveStore, req.space!);
       return json(200, { policy });
     }
     if (req.method === "POST") {
@@ -147,7 +160,10 @@ export async function handleRequest(req: ServerRequest, deps: ServerDeps): Promi
   if (req.path === "/hive/experience") {
     if (!deps.hiveStore) return json(404, { error: "federation not enabled on this endpoint" });
     if (!isSpaceId(req.space)) return json(400, { error: "missing or malformed x-brainblast-space header" });
-    const policy = deps.hiveStore.getPolicy ? await deps.hiveStore.getPolicy(req.space!) : null;
+    // Fail-open: a missing policy table (not yet migrated) or a transient
+    // policy-read error must NEVER take federation down — it just means "no
+    // policy = open" (the documented default until a space is restricted).
+    const policy = await safeGetPolicy(deps.hiveStore, req.space!);
 
     if (req.method === "POST") {
       let batch: ExperienceBatch;
