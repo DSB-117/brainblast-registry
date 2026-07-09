@@ -23,6 +23,8 @@ import { ipHash } from "../../../../lib/fleetGuard";
 // corpus, the feed, or the enforcement rule set. Griefing defence: per-IP
 // hourly cap on POST (audit table keyed by salted IP hash, never a raw IP).
 export const dynamic = "force-dynamic";
+// Long-poll (push transport) holds the request server-side; allow up to 30s.
+export const maxDuration = 30;
 
 const HOURLY_PUSH_CAP = 120; // signed batches per IP per rolling hour
 
@@ -30,6 +32,8 @@ async function respond(req: NextRequest): Promise<NextResponse> {
   const url = new URL(req.url);
   const query: Record<string, string> = {};
   for (const [k, v] of url.searchParams) query[k] = v;
+  // Keep the hold safely inside maxDuration (leave headroom for the response).
+  if (query.wait != null) query.wait = String(Math.min(25, Number(query.wait) || 0));
 
   const store = new SupabaseHiveStore(process.env.SUPABASE_URL ?? "", process.env.SUPABASE_SERVICE_ROLE_KEY ?? "");
   const resp = await handleRequest(
@@ -38,9 +42,12 @@ async function respond(req: NextRequest): Promise<NextResponse> {
       path: "/hive/experience",
       query,
       space: req.headers.get("x-brainblast-space") ?? undefined,
+      reader: req.headers.get("x-brainblast-reader") ?? undefined,
       body: req.method === "POST" ? await req.text() : undefined,
     },
-    { lots: [], hiveStore: store },
+    // Poll the DB every ~2s while holding — cheap, and well within a
+    // long-poll window. Abort if the client disconnects.
+    { lots: [], hiveStore: store, pollMs: 2000, abortLongPoll: () => req.signal?.aborted ?? false },
   );
   return new NextResponse(resp.body, { status: resp.status, headers: { "content-type": resp.contentType } });
 }
