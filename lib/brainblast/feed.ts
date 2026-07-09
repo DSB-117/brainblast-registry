@@ -1,6 +1,5 @@
-// VENDORED from brainblast@0.9.6 (packages/core/src/feed.ts) — do NOT edit here.
-// The registry vendors the lean distribution surface so it never pulls
-// brainblast's native deps (tree-sitter) onto Vercel. Sync from upstream.
+// VENDORED from brainblast@0.12.0 (packages/core/src/feed.ts) — do NOT edit here.
+// Sync from upstream.
 
 // The VTI feed — Stage 4 of ROADMAP-TRAINING-DATA.md.
 //
@@ -28,14 +27,20 @@ export interface TierEntitlement {
   freshnessHoldbackHours: number;
 }
 
-// The access ladder. `sample` is the open teaser (receipts, no fixtures, held
-// back). Paid access is lot-scoped (à-la-carte via the grant's `lots`):
-// `standard` = one or more curated lots, `firehose` = Scale (every lot + all
-// future lots). Both paid tiers get full fixtures, 0 holdback, and every record
-// IN SCOPE — the product axis is which lots the grant names. `firehose` is
-// surfaced to buyers as "Scale".
+// The access ladder. `sample` is the open discovery tier: EVERY record's
+// metadata + RED→GREEN receipt, immediately — but never the fixtures (the
+// trainable code). Since v0.12.0 sample has no record cap and no freshness
+// holdback: North Star #1 says friction exists only at the trainable-payload
+// boundary, never at discovery, and a week-stale sample starved HiveMind (the
+// consumption side) of exactly the freshness that makes it a second brain.
+// What a buyer pays for is unchanged — the payload and the lot license: paid
+// access is lot-scoped (à-la-carte via the grant's `lots`): `standard` = one
+// or more curated lots; `firehose` = Scale (every lot + all future lots),
+// both with full fixtures. The product axis is which lots the grant names.
+// (Enum ids are kept stable for the published CLI; `firehose` is surfaced to
+// buyers as "Scale".)
 export const TIER_ENTITLEMENTS: Record<FeedTier, TierEntitlement> = {
-  sample: { tier: "sample", maxRecords: 5, includeFixtures: false, freshnessHoldbackHours: 168 },
+  sample: { tier: "sample", maxRecords: null, includeFixtures: false, freshnessHoldbackHours: 0 },
   standard: { tier: "standard", maxRecords: null, includeFixtures: true, freshnessHoldbackHours: 0 },
   firehose: { tier: "firehose", maxRecords: null, includeFixtures: true, freshnessHoldbackHours: 0 },
 };
