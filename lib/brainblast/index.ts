@@ -46,3 +46,25 @@ export {
 export { scoreVti, type CorpusVti } from "./corpus";
 export { TRAP_CLASSES, classifyTrap, type TrapClass } from "./vtiClass";
 export { base58Encode, base58Decode } from "./base58";
+
+// HiveMind federation (v0.11.0) — /api/hive/experience runs on these.
+export {
+  verifyBatch,
+  makeBatch,
+  signBody,
+  verifyBody,
+  isSpaceId,
+  newSpaceId,
+  experienceEventKey,
+  MemoryHiveStore,
+  SupabaseHiveStore,
+  BATCH_MAX_EVENTS,
+  EVENT_FIELD_MAX,
+  type ExperienceBatch,
+  type ExperienceBatchBody,
+  type BatchVerification,
+  type HiveExperienceStore,
+  type HiveStoreAppendResult,
+  type StoredExperienceEvent,
+  type ExperienceEvent,
+} from "./federation";

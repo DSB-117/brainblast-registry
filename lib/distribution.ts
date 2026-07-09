@@ -39,7 +39,7 @@ export async function serve(req: NextRequest, path: string): Promise<NextRespons
   // The handler's meter is synchronous; capture the record and persist it after.
   let captured: UsageRecord | undefined;
   const serverReq: ServerRequest = { method: req.method ?? "GET", path, query, grant };
-  const resp = handleRequest(serverReq, {
+  const resp = await handleRequest(serverReq, {
     lots,
     trustedDistributor: process.env.BRAINBLAST_MARKET_PUBKEY,
     hmacSecret: process.env.BRAINBLAST_MARKET_SECRET,
