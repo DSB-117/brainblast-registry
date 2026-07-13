@@ -1,4 +1,5 @@
 import AccessClient from "../../components/dash/AccessClient";
+import MyLicenses from "../../components/MyLicenses";
 import { loadDashboard } from "../../lib/dashboardData";
 
 export default async function Access() {
@@ -9,10 +10,11 @@ export default async function Access() {
         <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500, marginBottom: 12 }}>Training access</div>
         <h1 style={{ fontSize: 38, fontWeight: 600, letterSpacing: "-0.035em", margin: 0 }}>Configure your license</h1>
         <p style={{ fontSize: 16, color: "var(--ink-2)", margin: "14px 0 0", maxWidth: 640, lineHeight: 1.6 }}>
-          Browsing and the sample feed are always free. To license the full fixtures and the live delta, pick the lots that match your stack, take a package, or grab everything with Scale — pay in USD, or in $BRAIN for a standing 10% discount. Either way we issue a signed grant.
+          Browsing and the sample feed are always free. To license the full fixtures and the live delta, pick the lots that match your stack, take a package, or grab everything with Scale — pay from your wallet in SOL, USDC, or $BRAIN (a standing 10% discount) and the signed grant is issued the moment your payment verifies on-chain.
         </p>
       </div>
       <AccessClient pricing={d.lotPricing} />
+      <MyLicenses />
     </div>
   );
 }

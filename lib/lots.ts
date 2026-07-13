@@ -185,3 +185,44 @@ export function computePricing(vtis: Array<Record<string, any>>): Pricing {
   const scaleList = lots.reduce((s, l) => s + l.price, 0);
   return { lots, packages, scale: round100(scaleList * (1 - SCALE_DISCOUNT)), scaleListPrice: scaleList, otherCount: (byLot.get("other") ?? []).length };
 }
+
+// ── Selection pricing ────────────────────────────────────────────────────────
+// Prices an arbitrary lot selection: apply every bundle whose lots are all
+// selected (bundle lot-sets are disjoint), largest-first so Scale wins when
+// everything is picked, then add the remaining lots à la carte. This preserves
+// a bundle's discount when the buyer adds extra lots on top of it. Used by BOTH
+// the /access configurator (display) and POST /api/purchases (the authoritative
+// server-side quote) so the number a buyer sees is the number they're charged.
+
+export interface SelectionQuote {
+  total: number; // annual USD; monthly is monthlyOf(total)
+  applied: { name: string; save: number }[];
+  extras: LotName[];
+  isScale: boolean; // every sellable lot selected ⇒ Scale (firehose grant)
+}
+
+export function priceSelection(pricing: Pricing, selection: LotName[]): SelectionQuote {
+  const sel = new Set(selection);
+  const priceOf = (l: LotName) => pricing.lots.find((x) => x.lot === l)?.price ?? 0;
+  const allSellable = pricing.lots.map((l) => l.lot);
+  const bundles = [
+    ...pricing.packages.map((p) => ({ name: p.name, lots: p.lots as LotName[], price: p.price })),
+    { name: "Scale", lots: allSellable, price: pricing.scale },
+  ];
+
+  const applied: { name: string; save: number }[] = [];
+  const covered = new Set<LotName>();
+  let bundleTotal = 0;
+  for (const b of [...bundles].sort((a, b) => b.lots.length - a.lots.length)) {
+    if (b.lots.length >= 2 && b.lots.every((l) => sel.has(l) && !covered.has(l))) {
+      const list = b.lots.reduce((s, l) => s + priceOf(l), 0);
+      applied.push({ name: b.name, save: list - b.price });
+      bundleTotal += b.price;
+      b.lots.forEach((l) => covered.add(l));
+    }
+  }
+  const extras = selection.filter((l) => !covered.has(l));
+  const total = selection.length ? bundleTotal + extras.reduce((s, l) => s + priceOf(l), 0) : 0;
+  const isScale = selection.length > 0 && allSellable.every((l) => sel.has(l));
+  return { total, applied, extras, isScale };
+}

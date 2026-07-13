@@ -81,6 +81,7 @@ select label, activated_at from beta_invites order by activated_at desc nulls la
 | `SUPABASE_URL` | Supabase project URL (usage ledger + fleet ledger). |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-role key — **server-only**, never exposed to the client. |
 | `BRAINBLAST_MARKET_PUBKEY` | The distributor's ed25519 **public** address. `/api/feed` verifies grants against this. Generate the identity offline with `brainblast grant keygen`; publish only the address. |
+| `BRAINBLAST_MARKET_KEY` | The distributor's ed25519 **secret** key (base58, from the same `brainblast grant keygen`). **Required for self-serve sales** — `POST /api/purchases/verify` signs each buyer's grant with it the moment their payment verifies on-chain. Server-only; it must be the pair of `BRAINBLAST_MARKET_PUBKEY` or issued grants won't verify at the feed. |
 
 ### Recommended
 
@@ -96,14 +97,25 @@ select label, activated_at from beta_invites order by activated_at desc nulls la
 |---|---|---|
 | `VTI_SOURCE_URL` | GitHub raw `datasets/seed/seed-vti.jsonl` | Corpus source the dashboard + API read. |
 | `NEXT_PUBLIC_SOLANA_RPC_URL` | publicnode mirror | Browser RPC for wallet reads. |
-| `SOLANA_RPC_URL` | publicnode mirror | Server RPC. |
+| `SOLANA_RPC_URL` | publicnode mirror | Server RPC — also what `/api/purchases/verify` and the cron settle-scan read payments through. A dedicated provider (Helius/Triton) is recommended once sales volume matters. |
+| `SALES_TREASURY` | `Cyk9uU3q8YkV8LPY3qaUiN749qpEvzoTR5iZWqZNcT8S` | Wallet self-serve sales settle to. Distinct from the stake bounty pool. |
 | `CRON_SECRET` / `SYNC_TOKEN` | — | Auth for the `/api/*/sync` cron routes (only if you run those crons). |
 | `PACK_REGISTRY_INDEX_URL` | — | The older pack-registry index (separate business; not needed for the VTI marketplace). |
 
-> `BRAINBLAST_MARKET_SECRET` is **only** needed if you issue grants *from the
-> server*. At launch, grants are issued offline (`brainblast grant issue
-> --tier <tier>`) in response to a request-access email, so the registry does
-> **not** need the secret. Keep it off the server until self-serve issuance ships.
+> `BRAINBLAST_MARKET_SECRET` (the **HMAC** fallback) is only needed if you issue
+> hmac-signed grants; the self-serve path signs ed25519 with
+> `BRAINBLAST_MARKET_KEY` above. Offline issuance (`brainblast grant issue`)
+> still works for contact-sales deals — both verify at the same feed.
+
+### Self-serve sales checklist
+
+1. Run [`supabase/migrations/0006_purchases.sql`](supabase/migrations/0006_purchases.sql) in the Supabase SQL editor.
+2. Set `BRAINBLAST_MARKET_KEY` (secret) + `BRAINBLAST_MARKET_PUBKEY` (its public
+   address) — one `brainblast grant keygen` produces both.
+3. Confirm `SALES_TREASURY` (defaults to the address above) and redeploy.
+4. Buy path: `/access` → pick lots → **Buy now** → SOL/USDC/$BRAIN from any
+   wallet → grant issued instantly. The cron (`/api/cron/sync`) settles payments
+   whose buyer closed the tab and expires quotes abandoned >24 h.
 
 ---
 

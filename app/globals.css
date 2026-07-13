@@ -260,3 +260,21 @@ body::before {
 }
 .wallet-adapter-button:not([disabled]):hover { background: rgba(255,255,255,0.1) !important; }
 .wallet-adapter-dropdown-list { background: var(--panel) !important; border: 1px solid var(--line-2) !important; }
+
+/* Self-serve checkout (CheckoutModal + licenses panel) */
+@keyframes spin360 {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin360 0.8s linear infinite;
+}
+.code-pill {
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2);
+  background: rgba(0,0,0,0.35); border: 1px solid var(--line);
+  border-radius: 7px; padding: 2px 7px; white-space: nowrap;
+}
+.status-line { font-size: 13px; margin: 4px 0 0; color: var(--ink-2); word-break: break-word; }
+.status-line.error { color: var(--rose); }
+.status-line.success { color: var(--emerald); }

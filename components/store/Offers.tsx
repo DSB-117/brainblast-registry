@@ -75,7 +75,7 @@ export default function Offers({ detailed = false, pricing }: { detailed?: boole
               </div>
               {detailed && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13, color: "var(--ink-2)", marginBottom: 22 }}>
-                  {["Every vulnerable + fixed fixture", "Live verified delta, zero holdback", "USD — or $BRAIN for 10% off"].map((f) => (
+                  {["Every vulnerable + fixed fixture", "Live verified delta, zero holdback", "SOL, USDC — or $BRAIN for 10% off"].map((f) => (
                     <div key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.4 }}>
                       <span style={{ width: 16, height: 16, borderRadius: "50%", background: b.accent, flexShrink: 0, marginTop: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#03130c" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
@@ -86,7 +86,7 @@ export default function Offers({ detailed = false, pricing }: { detailed?: boole
                 </div>
               )}
               <Link href="/access" style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "center", height: 46, borderRadius: 12, fontSize: 14.5, fontWeight: 600, background: b.featured ? "var(--grad-brand)" : "var(--glass-2)", color: b.featured ? "#03130c" : "var(--ink)", border: b.featured ? "none" : "1px solid var(--line-2)" }}>
-                Coming soon
+                {b.cta}
               </Link>
             </div>
           );

@@ -162,3 +162,34 @@ alter table stake_submissions add column if not exists trap_id text;
 alter table stake_submissions alter column pack_id drop not null;
 alter table stake_submissions alter column rule_id drop not null;
 create index if not exists stake_submissions_trap_idx on stake_submissions (trap_id);
+
+-- Self-serve sales (R4 settlement). One row per checkout: server-computed
+-- quote → on-chain payment → issued grant. Full DDL + rationale in
+-- migrations/0006_purchases.sql.
+create table if not exists purchases (
+  id bigint generated always as identity primary key,
+  memo_code text not null unique,
+  claim_hash text not null,
+  buyer_wallet text not null,
+  lots jsonb not null,
+  tier text not null check (tier in ('standard', 'firehose')),
+  period text not null check (period in ('mo', 'yr')),
+  usd_total numeric not null,
+  token_symbol text not null check (token_symbol in ('SOL', 'USDC', 'BRAIN')),
+  token_mint text,
+  token_amount_due numeric not null,
+  token_usd_price numeric not null,
+  pay_to text not null,
+  status text not null default 'pending_payment'
+    check (status in ('pending_payment', 'paid', 'granted', 'expired', 'underpaid')),
+  quote_expires_at timestamptz not null,
+  tx_signature text unique,
+  token_amount_received numeric,
+  grant jsonb,
+  grant_expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists purchases_status_idx on purchases (status);
+create index if not exists purchases_buyer_idx on purchases (buyer_wallet);
+alter table purchases enable row level security;
