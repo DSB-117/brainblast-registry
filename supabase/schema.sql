@@ -185,7 +185,7 @@ create table if not exists purchases (
   quote_expires_at timestamptz not null,
   tx_signature text unique,
   token_amount_received numeric,
-  grant jsonb,
+  grant_json jsonb,
   grant_expires_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

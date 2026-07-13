@@ -52,7 +52,7 @@ export interface PurchaseRow {
   quote_expires_at: string;
   tx_signature: string | null;
   token_amount_received: number | null;
-  grant: Grant | null;
+  grant_json: Grant | null; // "grant" is reserved SQL — the API still exposes it as `grant`
   grant_expires_at: string | null;
   created_at: string;
   updated_at: string;
@@ -84,7 +84,7 @@ export function publicPurchase(row: PurchaseRow) {
     status: row.status,
     quote_expires_at: row.quote_expires_at,
     tx_signature: row.tx_signature,
-    grant: row.grant,
+    grant: row.grant_json,
     grant_expires_at: row.grant_expires_at,
     created_at: row.created_at,
   };
@@ -238,7 +238,7 @@ async function settle(
       status: "granted",
       token_amount_received: received,
       tx_signature: transfer.signature,
-      grant,
+      grant_json: grant,
       grant_expires_at: grant.expiresAt,
       updated_at: new Date().toISOString(),
     })

@@ -27,7 +27,7 @@ create table if not exists purchases (
   quote_expires_at timestamptz not null,
   tx_signature text unique,            -- unique: one tx settles at most one purchase
   token_amount_received numeric,
-  grant jsonb,                         -- the issued grant (bearer credential)
+  grant_json jsonb,                         -- the issued grant (bearer credential; "grant" is reserved SQL)
   grant_expires_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
