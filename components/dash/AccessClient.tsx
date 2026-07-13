@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { LOTS, PACKAGES, monthlyOf, type LotName, type Pricing } from "../../lib/lots";
+import { LOTS, PACKAGES, monthlyOf, priceSelection, type LotName, type Pricing } from "../../lib/lots";
+import CheckoutModal from "../CheckoutModal";
 
 function usd(n: number) { return `$${n.toLocaleString()}`; }
 // Set NEXT_PUBLIC_FORMSPREE_ENDPOINT to your Formspree form URL (https://formspree.io/f/xxxx).
@@ -14,6 +15,7 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
   const allSellable = pricing.lots.map((l) => l.lot);
   const [sel, setSel] = useState<Set<LotName>>(new Set());
   const [period, setPeriod] = useState<"yr" | "mo">("yr");
+  const [showCheckout, setShowCheckout] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [sent, setSent] = useState<"idle" | "sending" | "done" | "error">("idle");
   const closeForm = () => { setShowForm(false); setSent("idle"); };
@@ -40,26 +42,10 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
     ...pricing.packages.map((p) => ({ key: p.key, name: p.name, lots: p.lots as LotName[], price: p.price })),
     { key: "scale", name: "Scale", lots: allSellable, price: pricing.scale },
   ];
-  const isScale = selected.length > 0 && allSellable.every((l) => sel.has(l));
 
-  // Price = apply every bundle whose lots are all selected (bundle lot-sets are
-  // disjoint), largest-first so Scale wins when everything is picked, then add
-  // the remaining lots at full à-la-carte price. This preserves a bundle's
-  // discount when the buyer adds extra lots on top of it — the bug was that a
-  // discount only applied on an EXACT bundle match, so one extra lot lost it.
-  const applied: { name: string; save: number }[] = [];
-  const covered = new Set<LotName>();
-  let bundleTotal = 0;
-  for (const b of [...bundles].sort((a, b) => b.lots.length - a.lots.length)) {
-    if (b.lots.length >= 2 && b.lots.every((l) => sel.has(l) && !covered.has(l))) {
-      const list = b.lots.reduce((s, l) => s + priceOf(l), 0);
-      applied.push({ name: b.name, save: list - b.price });
-      bundleTotal += b.price;
-      b.lots.forEach((l) => covered.add(l));
-    }
-  }
-  const extras = selected.filter((l) => !covered.has(l));
-  const total = selected.length ? bundleTotal + extras.reduce((s, l) => s + priceOf(l), 0) : 0;
+  // Selection pricing lives in lib/lots.ts (priceSelection) — the SAME function
+  // POST /api/purchases quotes with, so the displayed number is the charged one.
+  const { total, applied, extras, isScale } = priceSelection(pricing, selected);
   const brainTotal = Math.round(total * 0.9);
 
   // Upsell: a single bundle that fully covers the selection AND beats the
@@ -99,11 +85,11 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
     <div className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 28 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
         <div style={{ fontSize: 13, color: "var(--emerald)", fontWeight: 500 }}>Configure your license</div>
-        <span className="mono" style={{ fontSize: 11.5, color: "var(--ink-3)", padding: "5px 11px", borderRadius: 999, border: "1px solid var(--line)" }}>grant issued in ~1 day</span>
+        <span className="mono" style={{ fontSize: 11.5, color: "var(--emerald)", padding: "5px 11px", borderRadius: 999, border: "1px solid rgba(52,211,153,0.35)" }}>instant signed grant</span>
       </div>
       <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Pick your lots</h2>
       <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "0 0 24px", maxWidth: 520, lineHeight: 1.6 }}>
-        License the slices that match your stack, take a package, or grab everything with Scale. Every paid lot ships full fixtures, the live delta, and zero holdback — we issue a signed grant.
+        License the slices that match your stack, take a package, or grab everything with Scale. Every paid lot ships full fixtures, the live delta, and zero holdback — pay in SOL, USDC, or $BRAIN and your signed grant is issued the moment the payment confirms.
       </p>
 
       {/* Billing period */}
@@ -179,8 +165,8 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
                 {[
                   "Full RED + GREEN fixtures and the proving test for every record",
                   "The live verified delta as the fleet finds more — zero holdback",
-                  "A signed grant, issued within a day",
-                  "Pay in USD, or $BRAIN for 10% off",
+                  "A signed grant, issued instantly at checkout",
+                  "Pay in SOL, USDC, or $BRAIN for 10% off",
                 ].map((t) => (
                   <div key={t} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
@@ -230,19 +216,34 @@ export default function AccessClient({ pricing }: { pricing: Pricing }) {
           </div>
 
           {selected.length ? (
-            <button onClick={() => setShowForm(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", height: 44, borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", border: "none", fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>
-              Contact sales
-            </button>
+            <>
+              <button onClick={() => setShowCheckout(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", height: 44, borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", border: "none", fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>
+                Buy now
+              </button>
+              <button onClick={() => setShowForm(true)} style={{ width: "100%", marginTop: 8, height: 36, borderRadius: 10, background: "transparent", color: "var(--ink-3)", border: "none", fontSize: 12.5, cursor: "pointer" }}>
+                or contact sales — invoicing, wires, custom terms
+              </button>
+            </>
           ) : (
             <a href="/browse" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 44, borderRadius: 12, background: "var(--glass-2)", color: "var(--ink)", border: "1px solid var(--line-2)", fontSize: 14.5, fontWeight: 600 }}>
               Browse the free tier
             </a>
           )}
           <p className="mono" style={{ fontSize: 10, color: "var(--ink-4)", margin: "10px 0 0", textAlign: "center", lineHeight: 1.5 }}>
-            USD or $BRAIN. Access is opening soon — contact sales and we&apos;ll issue your signed grant.
+            SOL · USDC · $BRAIN (10% off). Pay from your wallet; the signed grant is issued the moment the payment verifies on-chain.
           </p>
         </div>
       </div>
+
+      {showCheckout && selected.length > 0 && (
+        <CheckoutModal
+          selection={selected}
+          period={period}
+          usdTotal={disp(total)}
+          orderLabel={orderLabel}
+          onClose={() => setShowCheckout(false)}
+        />
+      )}
 
       {showForm && (
         <div onClick={closeForm} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(4,4,10,0.66)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>

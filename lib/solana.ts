@@ -107,45 +107,69 @@ export async function fetchIncomingTransfers(
       signature,
       { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 },
     ]);
-    if (!tx || tx.meta?.err) continue;
-
-    const memo = extractMemo(tx);
-    if (!memo) continue;
-
-    const accountKeys: string[] = tx.transaction.message.accountKeys.map((k: any) =>
-      typeof k === "string" ? k : k.pubkey,
-    );
-    const walletIdx = accountKeys.indexOf(wallet);
-
-    let mint: string | null = null;
-    let amount = 0;
-
-    if (walletIdx >= 0 && tx.meta.preBalances && tx.meta.postBalances) {
-      const delta = tx.meta.postBalances[walletIdx] - tx.meta.preBalances[walletIdx];
-      if (delta > 0) amount = delta; // lamports
-    }
-
-    if (amount === 0) {
-      const pre = (tx.meta.preTokenBalances ?? []).filter((b: any) => b.owner === wallet);
-      const post = (tx.meta.postTokenBalances ?? []).filter((b: any) => b.owner === wallet);
-      for (const p of post) {
-        const before = pre.find((b: any) => b.accountIndex === p.accountIndex);
-        const preAmount = before?.uiTokenAmount?.uiAmount ?? 0;
-        const postAmount = p.uiTokenAmount?.uiAmount ?? 0;
-        if (postAmount > preAmount) {
-          mint = p.mint;
-          amount = postAmount - preAmount;
-          break;
-        }
-      }
-    }
-
-    if (amount > 0) {
-      transfers.push({ signature, memo, mint, amount });
-    }
+    const transfer = transferFromTx(tx, wallet, signature);
+    if (transfer) transfers.push(transfer);
   }
 
   return transfers;
+}
+
+// Extracts the memo-tagged inbound transfer to `wallet` from a fetched
+// transaction, or null if the tx failed, carries no memo, or moved nothing
+// to the wallet. Shared by the batch indexer above and the by-signature
+// verifier below so both apply identical rules.
+function transferFromTx(tx: any, wallet: string, signature: string): IncomingTransfer | null {
+  if (!tx || tx.meta?.err) return null;
+
+  const memo = extractMemo(tx);
+  if (!memo) return null;
+
+  const accountKeys: string[] = tx.transaction.message.accountKeys.map((k: any) =>
+    typeof k === "string" ? k : k.pubkey,
+  );
+  const walletIdx = accountKeys.indexOf(wallet);
+
+  let mint: string | null = null;
+  let amount = 0;
+
+  if (walletIdx >= 0 && tx.meta.preBalances && tx.meta.postBalances) {
+    const delta = tx.meta.postBalances[walletIdx] - tx.meta.preBalances[walletIdx];
+    if (delta > 0) amount = delta; // lamports
+  }
+
+  if (amount === 0) {
+    const pre = (tx.meta.preTokenBalances ?? []).filter((b: any) => b.owner === wallet);
+    const post = (tx.meta.postTokenBalances ?? []).filter((b: any) => b.owner === wallet);
+    for (const p of post) {
+      const before = pre.find((b: any) => b.accountIndex === p.accountIndex);
+      const preAmount = before?.uiTokenAmount?.uiAmount ?? 0;
+      const postAmount = p.uiTokenAmount?.uiAmount ?? 0;
+      if (postAmount > preAmount) {
+        mint = p.mint;
+        amount = postAmount - preAmount;
+        break;
+      }
+    }
+  }
+
+  if (amount <= 0) return null;
+  return { signature, memo, mint, amount };
+}
+
+// Fetches ONE transaction by signature and extracts its memo-tagged transfer
+// to `wallet` — the instant-settlement path for checkout (the buyer hands us
+// the signature their wallet returned, so there's nothing to scan for).
+// `confirmed` commitment: the client waits for that level before calling.
+export async function fetchTransferBySignature(
+  signature: string,
+  wallet: string,
+  rpcUrl: string = defaultRpcUrl(),
+): Promise<IncomingTransfer | null> {
+  const tx = await rpcCall<any>(rpcUrl, "getTransaction", [
+    signature,
+    { encoding: "jsonParsed", maxSupportedTransactionVersion: 0, commitment: "confirmed" },
+  ]);
+  return transferFromTx(tx, wallet, signature);
 }
 
 // Firm on-chain SPL token balance held by `wallet` for `mint`, summed across

@@ -31,8 +31,8 @@ const FAQ = [
     a: "Both — pick the period when you build your license on the access page. Every lot, package, and Scale bills monthly or annually. Annual is the committed rate: 2 months free (~17% off) versus paying month to month. The $BRAIN 10% discount stacks on either.",
   },
   {
-    q: "Do I need $BRAIN or a wallet to buy?",
-    a: "No. USD is the default and needs no wallet. $BRAIN is an optional rail — pay in it for a standing 10% discount on any lot or Scale. Whatever you pay, we route value to the contributors whose records you use.",
+    q: "How do I pay?",
+    a: "Self-serve checkout is on-chain: pay from any Solana wallet in SOL, USDC, or $BRAIN — $BRAIN takes a standing 10% off any lot, package, or Scale. Your signed grant is issued the moment the payment verifies. Prefer USD invoicing or custom terms? Contact sales from the access page. Whatever you pay, we route value to the contributors whose records you use.",
   },
 ];
 
@@ -82,7 +82,7 @@ export default async function Pricing() {
           {[
             { c: "var(--cyan)", h: "Priced by coverage, not count", b: "A lot's price tracks the distinct lessons it teaches — footgun patterns × SDKs covered × quality (severity and independent corroboration) — snapped to clean tiers. You pay for leverage, not row count, so a dense lot costs more than a big-but-shallow one." },
             { c: "var(--violet)", h: "Three ways to buy", b: "A single lot for the ecosystem you ship on; a package — Web3 (both chains) or AppSec (every web, backend, cloud & crypto lot) — at a discount; or Scale, every lot plus every lot we add next. Low floor, clear ceiling." },
-            { c: "var(--emerald)", h: "Every license includes", b: "The full RED + GREEN fixtures and the proving test for each record · the live verified delta as the fleet finds more, zero holdback · a signed grant issued within a day · pay in USD, or $BRAIN for a standing 10% off." },
+            { c: "var(--emerald)", h: "Every license includes", b: "The full RED + GREEN fixtures and the proving test for each record · the live verified delta as the fleet finds more, zero holdback · a signed grant issued instantly at checkout · pay in SOL, USDC, or $BRAIN for a standing 10% off." },
           ].map((x) => (
             <div key={x.h} className="glass" style={{ borderRadius: "var(--radius-lg)", padding: 24 }}>
               <span style={{ display: "block", width: 26, height: 3, borderRadius: 2, background: x.c, marginBottom: 14, boxShadow: `0 0 10px ${x.c}` }} />
