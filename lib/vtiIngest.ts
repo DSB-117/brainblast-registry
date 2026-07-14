@@ -48,6 +48,10 @@ const VETTED_CHECK_KINDS = new Set([
   // Solidity forbidden CALL by name (selfdestruct, delegatecall, suicide) —
   // bare or method, any receiver. Complements cst-member-access-forbidden.
   "cst-call-forbidden",
+  // Solidity positional-arg forbidden literal — the Uniswap V2 zero-min-out
+  // family (addLiquidityETH(…,0,0,…), swapExactTokensForTokens(amt,0,…)) where
+  // the slippage floor is passed positionally, not as a named struct field.
+  "cst-positional-arg-forbidden-literal",
 ]);
 const VETTED_TEST_KINDS = new Set([
   "stripe-webhook-signature", "privy-jwt-claims", "bags-fee-share",
