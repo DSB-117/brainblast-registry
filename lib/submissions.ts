@@ -171,6 +171,7 @@ export async function markProofVerified(
   if (!existing) return { updated: false, reason: "no such trapId" };
 
   const record = (existing.record ?? {}) as Record<string, any>;
+  const wasProven = record.proofVerified === true;
   if (proven) {
     record.proofVerified = true;
     record.redGreenProof = { red: true, green: true, method, verifiedAt: now };
@@ -180,5 +181,17 @@ export async function markProofVerified(
     .update({ record, proof_verified: proven })
     .eq("trap_id", trapId);
   if (error) return { updated: false, reason: error.message };
+
+  // Contributor reward (BRAIN-UTILITY.md #3): accrue $BRAIN for verifiable work on
+  // the FIRST time this VTI proves. Best-effort — a reward failure never affects
+  // the proof result.
+  if (proven && !wasProven) {
+    try {
+      const { accrueRewardOnProof } = await import("./rewards");
+      await accrueRewardOnProof(db, trapId, record);
+    } catch {
+      /* reward accrual is non-critical; the proof already landed */
+    }
+  }
   return { updated: true };
 }

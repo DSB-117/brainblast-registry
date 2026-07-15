@@ -13,7 +13,7 @@ import { checkReproveAuth } from "../../../lib/submissions";
 // re-run brainblast-side (where ts-morph lives) and flips `proof_verified`
 // before a record reaches a paid tier. Griefing defence: a per-IP hourly cap.
 //
-//   POST /api/vti  body: { finding, consentScope?, corroborationCount? }
+//   POST /api/vti  body: { finding, consentScope?, corroborationCount?, rewardWallet? }
 //                  → 201 { accepted:true, trapId, provenanceUrl }   (landed, pending re-proof)
 //                  → 200 { accepted:true, duplicate:true, trapId }  (already present)
 //                  → 422 { accepted:false, reasons }                (failed a gate)
@@ -69,8 +69,11 @@ export async function POST(req: NextRequest) {
   const finding = body && typeof body === "object" && "finding" in body ? body.finding : body;
   const consentScope = body?.consentScope;
   const corroborationCount = body?.corroborationCount;
+  // Optional: the contributor's Solana payout address. If set, they accrue a
+  // $BRAIN reward from the fixed pool when this VTI first proves.
+  const rewardWallet = body?.rewardWallet;
 
-  const result = await ingestVtiSubmission(finding, { consentScope, corroborationCount });
+  const result = await ingestVtiSubmission(finding, { consentScope, corroborationCount, rewardWallet });
 
   // Log the attempt for rate-limiting (best-effort), regardless of verdict.
   await db.from("vti_ingest_audit").insert({ ip_hash: hash, trap_id: result.trapId ?? null }).then(() => {}, () => {});
