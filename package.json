@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:purchases": "tsx scripts/smoke-purchases.mts"
+    "test:purchases": "tsx scripts/smoke-purchases.mts",
+    "pay:rewards": "tsx scripts/pay-rewards.mts"
   },
   "dependencies": {
     "@solana/spl-token": "^0.4.14",
