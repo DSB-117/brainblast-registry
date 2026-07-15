@@ -106,9 +106,11 @@ export function validateShape(x: unknown): string[] {
   return r;
 }
 
+const REWARD_WALLET_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
 export async function ingestVtiSubmission(
   raw: unknown,
-  opts: { consentScope?: string; corroborationCount?: number; fetchImpl?: typeof fetch; now?: string } = {},
+  opts: { consentScope?: string; corroborationCount?: number; rewardWallet?: string; fetchImpl?: typeof fetch; now?: string } = {},
 ): Promise<IngestGateResult> {
   const trapId = typeof (raw as any)?.id === "string" ? (raw as any).id : null;
 
@@ -168,6 +170,10 @@ export async function ingestVtiSubmission(
     corroborationCount: opts.corroborationCount ?? 1,
     license: "contributor-grant-v1",
     consentScope,
+    // Optional payout address — if present, the contributor accrues a $BRAIN
+    // reward from the fixed pool when this VTI first proves (see lib/rewards.ts).
+    // Anonymous submissions (no wallet) simply accrue nothing.
+    rewardWallet: typeof opts.rewardWallet === "string" && REWARD_WALLET_RE.test(opts.rewardWallet) ? opts.rewardWallet : null,
     capturedAt: now,
   };
 

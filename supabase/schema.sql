@@ -193,3 +193,32 @@ create table if not exists purchases (
 create index if not exists purchases_status_idx on purchases (status);
 create index if not exists purchases_buyer_idx on purchases (buyer_wallet);
 alter table purchases enable row level security;
+
+-- Contributor rewards (BRAIN-UTILITY.md #3) — work-weighted $BRAIN from a FIXED,
+-- capped pool on first proof. Full DDL + rationale in migrations/0007_contributor_rewards.sql.
+create table if not exists reward_pool (
+  id int primary key default 1,
+  total_budget_brain numeric not null default 0,
+  emitted_brain numeric not null default 0,
+  per_pattern_brain numeric not null default 0,
+  per_corroboration_brain numeric not null default 0,
+  updated_at timestamptz not null default now(),
+  constraint reward_pool_singleton check (id = 1)
+);
+create table if not exists contributor_rewards (
+  id bigint generated always as identity primary key,
+  trap_id text not null unique,
+  pattern_key text not null,
+  wallet text not null,
+  amount_brain numeric not null,
+  reason text not null check (reason in ('novel-pattern', 'corroboration')),
+  status text not null default 'accrued' check (status in ('accrued', 'paid', 'void')),
+  tx_signature text,
+  created_at timestamptz not null default now(),
+  paid_at timestamptz
+);
+create index if not exists contributor_rewards_status_idx on contributor_rewards (status);
+create index if not exists contributor_rewards_wallet_idx on contributor_rewards (wallet);
+create index if not exists contributor_rewards_pattern_idx on contributor_rewards (pattern_key);
+alter table contributor_rewards enable row level security;
+alter table reward_pool enable row level security;
