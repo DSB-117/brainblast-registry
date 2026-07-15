@@ -176,3 +176,52 @@ curl -s https://registry.brainblast.tech/api/fleet-ledger     # should NOT 500 a
 
 Then open the site and click every sidebar link — all eight pages should render
 the live corpus (15 VTIs, 100% reproduction).
+
+---
+
+## Contributor rewards (BRAIN-UTILITY.md #3)
+
+Rewards accrue automatically when a VTI first proves; **payout is operator-run**.
+
+**1. Apply the migration** (Supabase SQL editor):
+Run [`supabase/migrations/0007_contributor_rewards.sql`](supabase/migrations/0007_contributor_rewards.sql).
+
+**2. Seed the reward pool** — a FIXED budget, funded separately from sales (this
+separation is what keeps rewards "for work, not a profit share"). Tune the numbers;
+these are sane starting values:
+
+```sql
+insert into reward_pool (id, total_budget_brain, per_pattern_brain, per_corroboration_brain)
+values (1, 10000000, 5000, 1000)          -- 10M $BRAIN cap; 5k novel-pattern; 1k corroboration
+on conflict (id) do update set
+  total_budget_brain = excluded.total_budget_brain,
+  per_pattern_brain = excluded.per_pattern_brain,
+  per_corroboration_brain = excluded.per_corroboration_brain;
+```
+
+Raise `total_budget_brain` later to top up the pool; accrual stops when
+`emitted_brain` reaches it.
+
+**3. Contributors opt in** — the fleet/community passes their Solana payout address
+as `rewardWallet` in the `POST /api/vti` body. Anonymous submissions accrue nothing.
+
+**4. Pay out** — operator-run, on a schedule (weekly, like refunds). Needs the
+**reward treasury** secret (a base58 64-byte Solana key, funded with $BRAIN) —
+keep it OUT of the Vercel/web env; it lives only where you run the script:
+
+```bash
+# preview what would be paid (no env secret needed beyond Supabase)
+SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npx tsx scripts/pay-rewards.mts --dry-run
+# pay accrued rewards ≥ 1 $BRAIN
+SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… REWARD_TREASURY_SECRET=… \
+  npx tsx scripts/pay-rewards.mts --min 1
+```
+
+`pay-rewards` sends each contributor their $BRAIN from the reward treasury,
+confirms the transfer, then marks the row `paid` with the signature. Idempotent —
+a re-run after a crash never double-pays (a row is paid only while still `accrued`).
+
+**Inspect** accrued rewards awaiting payout (operator token):
+```bash
+curl -H "Authorization: Bearer $BRAINBLAST_REPROVE_TOKEN" https://registry.brainblast.tech/api/rewards
+```
