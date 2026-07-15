@@ -52,6 +52,11 @@ const VETTED_CHECK_KINDS = new Set([
   // family (addLiquidityETH(…,0,0,…), swapExactTokensForTokens(amt,0,…)) where
   // the slippage floor is passed positionally, not as a named struct field.
   "cst-positional-arg-forbidden-literal",
+  // Solidity/Go ABSENCE trap — a trigger call present in scope with its required
+  // guard missing (Chainlink `latestRoundData()` read without an updatedAt /
+  // block.timestamp staleness check). class: unchecked-staleness. Provenance
+  // target is the trigger-call line, so wild VTIs cite a real matchable line.
+  "cst-required-guard-missing",
 ]);
 const VETTED_TEST_KINDS = new Set([
   "stripe-webhook-signature", "privy-jwt-claims", "bags-fee-share",
