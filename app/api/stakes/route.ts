@@ -4,6 +4,9 @@ import { supabaseAdmin } from "../../../lib/supabase";
 import { BOUNTY_POOL_WALLET } from "../../../lib/solana";
 import { loadBondableVtis } from "../../../lib/corpusIndex";
 import { isAuthorized } from "../../../lib/auth";
+import { ipHash } from "../../../lib/fleetGuard";
+
+const HOURLY_STAKE_CAP = 20; // per-IP bonds per rolling hour; an operator token bypasses
 
 function generateMemoCode(): string {
   return `BB-${randomBytes(4).toString("hex")}`;
@@ -22,11 +25,21 @@ const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 // amplifies the contributor's dividend share, and is slashed if the VTI stops
 // reproducing.
 export async function POST(req: NextRequest) {
-  // Gated: unauthenticated bond creation is an unbounded DB-write / corpus-load
-  // vector. Staking is coming-soon, so require the operator token until it opens
-  // for self-service (then swap for a per-IP cap + wallet-ownership proof).
+  // Open self-service with a per-IP hourly cap (was operator-gated while staking
+  // was coming-soon). An operator token bypasses the cap. A bond row is inert
+  // until real $BRAIN/SOL/USDC moves on-chain and the indexer confirms the memo.
+  const db = supabaseAdmin();
+  const hash = ipHash(req);
   if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "unauthorized — staking is not open yet" }, { status: 401 });
+    const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recent } = await db
+      .from("stake_ingest_audit")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_hash", hash)
+      .gte("recorded_at", sinceIso);
+    if ((recent ?? 0) >= HOURLY_STAKE_CAP) {
+      return NextResponse.json({ error: "rate limit: too many bonds this hour — try again later" }, { status: 429 });
+    }
   }
   let body: any;
   try {
@@ -64,7 +77,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `no proven VTI with trap_id "${trap_id}" in the corpus` }, { status: 404 });
   }
 
-  const db = supabaseAdmin();
   const memo_code = generateMemoCode();
 
   const { data, error } = await db
@@ -76,6 +88,9 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Log for rate-limiting (best-effort; never blocks the response).
+  await db.from("stake_ingest_audit").insert({ ip_hash: hash, memo_code: data.memo_code }).then(() => {}, () => {});
 
   return NextResponse.json({
     id: data.id,

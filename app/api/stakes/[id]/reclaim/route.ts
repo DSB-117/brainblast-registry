@@ -4,8 +4,8 @@ import { isAuthorized } from "../../../../../lib/auth";
 
 // POST /api/stakes/:id/reclaim — queues a refund for a rejected stake.
 // Gated: this mutates the manually-processed refund queue and moves value, so
-// it requires the operator token. (Staking is coming-soon; when it opens for
-// self-service, replace this with proof the caller owns bonder_wallet.)
+// it stays operator-run even now that bond creation is open. (Future self-service
+// path: replace the operator token with proof the caller owns bonder_wallet.)
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
