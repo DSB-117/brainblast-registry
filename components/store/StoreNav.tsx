@@ -43,26 +43,25 @@ export default function StoreNav() {
           })}
         </nav>
 
-        {/* Public purchase isn't open yet — gate the primary CTA. Subscription
-            cards still route to /access so buyers can explore pricing. */}
-        <span
-          title="Public access is coming soon."
+        {/* Primary CTA → the live self-serve checkout (SOL / USDC / $BRAIN). */}
+        <Link
+          href="/access"
           style={{
             display: "inline-flex",
             alignItems: "center",
             height: 38,
             padding: "0 18px",
             borderRadius: 10,
-            background: "var(--glass-2)",
-            color: "var(--ink-3)",
-            border: "1px solid var(--line)",
+            background: "var(--grad-brand)",
+            color: "#03130c",
+            border: "none",
             fontSize: 14,
             fontWeight: 600,
-            cursor: "default",
+            textDecoration: "none",
           }}
         >
-          Coming soon
-        </span>
+          Get access
+        </Link>
       </div>
     </header>
   );
