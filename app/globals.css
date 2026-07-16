@@ -278,3 +278,70 @@ body::before {
 .status-line { font-size: 13px; margin: 4px 0 0; color: var(--ink-2); word-break: break-word; }
 .status-line.error { color: var(--rose); }
 .status-line.success { color: var(--emerald); }
+
+/* ── Mobile responsiveness ────────────────────────────────────────────
+   The storefront lays out with inline styles (hard-coded grid columns),
+   which can't carry their own media queries — so the mobile collapse
+   lives here. Attribute selectors + !important override inline styles. */
+@media (max-width: 720px) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Collapse hard-coded inline grids to a single column. minmax() grids
+     are exempt: auto-fit patterns are already responsive, and data
+     matrices keep their columns and scroll horizontally instead. */
+  [style*="grid-template-columns"]:not([style*="minmax("]) {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Compact stat strips read better two-up than stacked. */
+  [style*="grid-template-columns"][style*="repeat(4, 1fr)"],
+  [style*="grid-template-columns"][style*="repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  [style*="grid-template-columns"][style*="minmax("] {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Long mono tokens (checker ids, hashes) must be able to break. */
+  .mono,
+  code {
+    overflow-wrap: anywhere;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  /* Header nav: swipeable strip instead of clipped links. */
+  header nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  header nav::-webkit-scrollbar {
+    display: none;
+  }
+  header nav a {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  header > div {
+    gap: 16px !important;
+    padding: 0 16px !important;
+  }
+}
