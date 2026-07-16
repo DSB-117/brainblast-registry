@@ -86,7 +86,7 @@ export default async function Earn() {
           Turn a hard-won bug into a proven VTI — the vulnerable code, the fix, and a check that proves the difference. Prove it, cite the commit it lives in, and submit it in one command. Earn as labs license the corpus to train and evaluate on.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <span title="Contribution opens soon." style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--glass-2)", color: "var(--ink-3)", border: "1px solid var(--line)", fontSize: 14.5, fontWeight: 600, cursor: "default" }}>Coming soon</span>
+          <a href="/docs" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600, textDecoration: "none" }}>Contribute a trap</a>
           <a href="#how" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--glass-2)", color: "var(--ink)", fontSize: 14.5, fontWeight: 600, border: "1px solid var(--line-2)" }}>See how it works</a>
         </div>
       </div>
@@ -129,9 +129,9 @@ export default async function Earn() {
                 <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0, lineHeight: 1.6, maxWidth: 660 }}>{s.body}</p>
                 {s.code && <Code lines={s.code} />}
                 {s.cta && (
-                  <span title="Contribution opens soon." style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 15, fontSize: 13.5, fontWeight: 600, color: "var(--ink-3)", cursor: "default" }}>
-                    Coming soon
-                  </span>
+                  <a href={s.cta.href} style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 15, fontSize: 13.5, fontWeight: 600, color: "var(--emerald)", textDecoration: "none" }}>
+                    {s.cta.label} &rarr;
+                  </a>
                 )}
               </div>
             </Card>
@@ -187,7 +187,7 @@ export default async function Earn() {
           Participation is open — no application, no gatekeeper. Prove it RED→GREEN, cite the commit, and submit.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <span title="Contribution opens soon." style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--glass-2)", color: "var(--ink-3)", border: "1px solid var(--line)", fontSize: 14.5, fontWeight: 600, cursor: "default" }}>Coming soon</span>
+          <a href="/docs" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--grad-brand)", color: "#03130c", fontSize: 14.5, fontWeight: 600, textDecoration: "none" }}>Contribute a trap</a>
           <a href="/docs" style={{ display: "inline-flex", alignItems: "center", height: 46, padding: "0 22px", borderRadius: 12, background: "var(--glass-2)", color: "var(--ink)", fontSize: 14.5, fontWeight: 600, border: "1px solid var(--line-2)" }}>Read the docs</a>
         </div>
       </div>
