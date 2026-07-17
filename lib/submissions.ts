@@ -24,7 +24,9 @@ import { patternKey } from "./lots";
 export type ReproveAuth = "ok" | "unconfigured" | "unauthorized";
 
 export function checkReproveAuth(authHeader: string | null): ReproveAuth {
-  const token = (process.env.BRAINBLAST_REPROVE_TOKEN ?? "").trim();
+  // Canonical operator secret is BRAINBLAST_INGEST_TOKEN; BRAINBLAST_REPROVE_TOKEN
+  // is accepted as a legacy alias so the value keeps working through the cutover.
+  const token = (process.env.BRAINBLAST_INGEST_TOKEN ?? process.env.BRAINBLAST_REPROVE_TOKEN ?? "").trim();
   if (!token) return "unconfigured";
   const provided = (authHeader ?? "").trim().replace(/^Bearer\s+/i, "").trim();
   return provided === token ? "ok" : "unauthorized";
