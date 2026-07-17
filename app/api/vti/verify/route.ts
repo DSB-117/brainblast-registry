@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const auth = checkReproveAuth(req.headers.get("authorization"));
   if (auth === "unconfigured") {
-    return NextResponse.json({ error: "reprove endpoint not configured (BRAINBLAST_REPROVE_TOKEN unset on this deployment)" }, { status: 503 });
+    return NextResponse.json({ error: "reprove endpoint not configured (BRAINBLAST_INGEST_TOKEN unset on this deployment)" }, { status: 503 });
   }
   if (auth !== "ok") return NextResponse.json({ error: "unauthorized (token mismatch)" }, { status: 401 });
   let body: any;
